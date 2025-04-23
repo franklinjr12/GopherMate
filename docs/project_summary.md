@@ -92,14 +92,78 @@ frontend/
 ```
 backend/
 ├── cmd/
-│   └── server/            # Main entry point (main.go)
+│   └── server/
+│       └── main.go                 # Starts HTTP server, initializes DB and routes
 ├── internal/
-│   ├── api/               # HTTP handlers grouped by domain (auth, game, etc.)
-│   ├── db/                # Database access logic using raw SQL
-│   ├── model/             # Core domain structs
-│   ├── utils/             # Helper functions (e.g., hashing, UUIDs)
-└── schema.sql             # PostgreSQL schema
+│   ├── api/
+│   │   ├── auth.go                # login, register, session handling
+│   │   ├── game.go                # game creation, join, state fetch, move posting
+│   │   └── middleware.go          # auth/session validation middleware
+│   ├── db/
+│   │   ├── postgres.go            # DB connection setup
+│   │   ├── user_repository.go     # User DB operations
+│   │   ├── game_repository.go     # Game and move DB operations
+│   │   └── session_repository.go  # Session token handling
+│   ├── model/
+│   │   ├── user.go
+│   │   ├── game.go
+│   │   └── move.go
+│   └── utils/
+│       ├── hash.go                # Password hashing/verification
+│       ├── token.go               # UUID or token generation
+│       └── response.go            # JSON response helpers
+├── schema.sql                      # DB schema (version 1)
+└── go.mod / go.sum
 ```
+
+📂 cmd/server/main.go
+- Parsing env vars (like DB connection string)
+- Connecting to PostgreSQL
+- Setting up routes and starting the HTTP server
+
+📂 internal/api/
+- Controllers/handlers grouped by purpose
+- Manages HTTP-specific concerns (request parsing, status codes)
+- Delegates to db/ and model/ for actual work
+
+📂 internal/db/
+- Pure data access logic
+- Use database/sql with lib/pq
+- Can define query helpers and wrap transactions here if needed
+
+📂 internal/model/
+- Struct definitions for User, Game, Move, etc.
+- Pure Go, unaware of HTTP or SQL
+- Might include basic validation methods (e.g., IsValidMove() if needed)
+
+📂 internal/utils/
+- Tiny helpers to avoid clutter in api/
+- Focused, independent logic like:
+- GenerateToken() string
+- HashPassword(pw string) ([]byte, error)
+- WriteJSON(w, status, data)
+
+#### Endpoints
+
+🔐 Authentication Endpoints
+Method |  Endpoint       |  Description                      |  Auth Required
+POST   |  /api/register  |  Register a new user              |  ❌
+POST   |  /api/login	 |  Log in and get session token     |  ❌
+POST   |  /api/logout	 |  Invalidate session token         |  ✅
+GET	   |  /api/me	     |  Get current logged-in user info  |  ✅
+
+🎮 Game Management
+Method | Endpoint              | Description                         | Auth Required
+GET    | /api/games            | List all open games (status = open) | ✅
+POST   | /api/games            | Create a new game                   | ✅
+POST   | /api/games/:id/join   | Join an existing game by ID         | ✅
+GET    | /api/games/:id        | Get full game state                 | ✅
+
+♟️ Moves and Gameplay
+Method | Endpoint                  | Description                                  | Auth Required
+POST   | /api/games/:id/move       | Submit a move (e.g. {"from":"e2","to":"e4"}) | ✅
+GET    | /api/games/:id/moves      | Get move history (for polling)               | ✅
+POST   | /api/games/:id/resign     | Resign from the game                         | ✅
 
 ---
 
