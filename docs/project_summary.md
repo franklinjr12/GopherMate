@@ -14,7 +14,7 @@ Build a simple online chess playing system to practice and showcase fullstack sk
 
 ### Frontend
 
-- **Framework**: React (plain JavaScript, no TypeScript)
+- **Framework**: React (plain JavaScript, no TypeScript), Using Vite for project setup
 - **Routing**: React Router
 - **State Management**: Local component state, React Context, or minimal custom logic
 - **UI Libraries**: Keep it minimal; avoid third-party libraries unless absolutely necessary
@@ -109,15 +109,15 @@ backend/
 │   │   ├── game.go
 │   │   └── move.go
 │   └── utils/
+│       ├── config.go              # Configuration handling, global consts
 │       ├── hash.go                # Password hashing/verification
 │       ├── token.go               # UUID or token generation
 │       └── response.go            # JSON response helpers
-├── schema.sql                      # DB schema (version 1)
+├── schema.sql                     # DB schema (version 1)
 └── go.mod / go.sum
 ```
 
 📂 cmd/server/main.go
-- Parsing env vars (like DB connection string)
 - Connecting to PostgreSQL
 - Setting up routes and starting the HTTP server
 
@@ -139,9 +139,10 @@ backend/
 📂 internal/utils/
 - Tiny helpers to avoid clutter in api/
 - Focused, independent logic like:
-- GenerateToken() string
-- HashPassword(pw string) ([]byte, error)
-- WriteJSON(w, status, data)
+- - GenerateToken() string
+- - HashPassword(pw string) ([]byte, error)
+- - WriteJSON(w, status, data)
+- Configuration and global consts
 
 #### Endpoints
 
@@ -252,6 +253,7 @@ CREATE TABLE sessions (
 
 ## 🧐 AI Agent Coding Notes
 
+- The agent persona is a senior software developer with great knowledge of react js, golang and postgresql.
 - Use REST endpoints for all game communication.
 - Keep code modular but simple, no ORMs, no external router libraries.
 - Use plain JavaScript in React with good component separation.
