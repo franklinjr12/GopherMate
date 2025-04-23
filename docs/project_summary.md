@@ -47,14 +47,45 @@ frontend/
 │   ├── components/        # Shared reusable UI components
 │   ├── features/
 │   │   ├── auth/          # Login/Register forms and logic
+│   │   |   |── LoginForm.js
+│   │   |   |── RegisterForm.js
 │   │   ├── lobby/         # Lobby list and game creation/joining
+│   │   |   |── LobbyList.js
+│   │   |   |── CreateGameButton.js
+│   │   |   |── JoinGameButton.js
 │   │   └── game/          # Game board, move history, timers
+│   │   |   |── ChessBoard.js
+│   │   |   |── MoveHistory.js
+│   │   |   |── ResignButton.js
 │   ├── pages/             # Route-level components
+│   |   |── LoginPage.js
+│   |   |── RegisterPage.js
+│   |   |── LobbyPage.js
+│   |   |── GamePage.js
 │   ├── services/          # API interaction (REST)
+│   |   |── authService.js
+│   |   |── gameService.js
+│   |   |── moveService.js
 │   ├── utils/             # Utility functions
+│   |   |── auth.js
+│   |   |── api.js
+|   |── chess/
+|   |   |── pieces/
+|   |   |   |── pawn.js
+|   |   |   |── tower.js
+|   |   |   |── knight.js
+|   |   |   |── bishop.js
+|   |   |   |── queen.js
+|   |   |   |── king.js
+|   |   |── moveValidator.js
+|   |   |── board.js
 │   └── App.js
 └── package.json
 ```
+
+#### Additional Info
+- CSS files should be beside their .js file, so for example if there is a LobbyList.js its styles will be on LobbyList.css on the same folder
+- Will use Bootstrap components
 
 ### Backend (Go)
 
