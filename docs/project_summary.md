@@ -113,6 +113,7 @@ backend/
 │       ├── hash.go                # Password hashing/verification
 │       ├── token.go               # UUID or token generation
 │       └── response.go            # JSON response helpers
+├── config/
 ├── schema.sql                     # DB schema (version 1)
 └── go.mod / go.sum
 ```
