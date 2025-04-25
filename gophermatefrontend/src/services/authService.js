@@ -10,3 +10,12 @@ export const registerUser = async (userData) => {
     throw error.response ? error.response.data : new Error('Network error');
   }
 };
+
+export const loginUser = async (credentials) => {
+  try {
+    const response = await axios.post('http://localhost:8080/api/login', credentials);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};

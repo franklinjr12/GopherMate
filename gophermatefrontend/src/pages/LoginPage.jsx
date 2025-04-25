@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
+import { loginUser } from '../services/authService';
 import './LoginPage.css';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Placeholder for login logic
-    console.log('Logging in with:', { username, password });
+    setError(null);
+
+    try {
+      const response = await loginUser({ username, password });
+      alert('Success: ' + response.message);
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    }
   };
 
   return (
@@ -37,6 +45,7 @@ const LoginPage = () => {
         </div>
         <button type="submit">Login</button>
       </form>
+      {error && <p className="error-message">{error}</p>}
     </div>
   );
 };
