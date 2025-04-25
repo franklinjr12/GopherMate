@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"gophermatebackend/internal/api"
-	"gophermatebackend/internal/db"
 )
 
 func main() {
@@ -15,13 +14,6 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-
-	// Initialize database connection
-	dbConn, err := db.InitDB()
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	defer dbConn.Close()
 
 	// Set up routes
 	mux := http.NewServeMux()

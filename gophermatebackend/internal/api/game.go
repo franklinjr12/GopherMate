@@ -24,8 +24,16 @@ func GamesHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch games"})
 		return
 	}
+	response := make([]map[string]interface{}, len(games))
+	for i, game := range games {
+		response[i] = map[string]interface{}{
+			"id":           game.ID,
+			"player_white": game.PlayerWhite.Int64,
+			"player_black": game.PlayerBlack.Int64,
+		}
+	}
 
-	utils.WriteJSON(w, http.StatusOK, games)
+	utils.WriteJSON(w, http.StatusOK, response)
 }
 
 func JoinGameHandler(w http.ResponseWriter, r *http.Request) {

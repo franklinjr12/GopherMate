@@ -7,7 +7,7 @@ import (
 
 type Game struct {
 	ID          string
-	PlayerWhite int
+	PlayerWhite sql.NullInt64
 	PlayerBlack sql.NullInt64
 	Winner      sql.NullString
 	CreatedAt   string
@@ -15,7 +15,7 @@ type Game struct {
 }
 
 func GetOpenGames(db *sql.DB) ([]Game, error) {
-	query := `SELECT id, player_white_id, player_black_id, winner, created_at, finished_at FROM games WHERE player_black_id IS NULL`
+	query := `SELECT id, player_white_id, player_black_id FROM games WHERE finished_at IS NULL`
 	rows, err := db.Query(query)
 	if err != nil {
 		log.Printf("GetOpenGames: Failed to execute query: %v", err)
@@ -26,7 +26,7 @@ func GetOpenGames(db *sql.DB) ([]Game, error) {
 	var games []Game
 	for rows.Next() {
 		var game Game
-		if err := rows.Scan(&game.ID, &game.PlayerWhite, &game.PlayerBlack, &game.Winner, &game.CreatedAt, &game.FinishedAt); err != nil {
+		if err := rows.Scan(&game.ID, &game.PlayerWhite, &game.PlayerBlack); err != nil {
 			log.Printf("GetOpenGames: Failed to scan row: %v", err)
 			return nil, err
 		}
