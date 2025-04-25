@@ -2,13 +2,36 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+
+	"gophermatebackend/internal/db"
+	"gophermatebackend/internal/model"
+	"gophermatebackend/internal/utils"
 )
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	// Placeholder for user registration logic
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+
+	if r.Method != http.MethodPost {
+		log.Println("RegisterHandler: Invalid request method")
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var user model.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		log.Printf("RegisterHandler: Failed to decode request body: %v\n", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := db.CreateUser(&user); err != nil {
+		log.Printf("RegisterHandler: Failed to create user: %v\n", err)
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, map[string]string{"message": "User registered successfully"})
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {

@@ -4,12 +4,21 @@ import (
 	"net/http"
 )
 
-func AuthMiddleware(next http.Handler) http.Handler {
+func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Placeholder for authentication logic
-		// Check session token or user authentication here
-		// If unauthorized, return an error response
-		// Otherwise, call the next handler
+
+		// Set CORS headers
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173") // Allow requests from your frontend
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		// Handle preflight requests
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }

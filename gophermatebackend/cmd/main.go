@@ -24,17 +24,21 @@ func main() {
 	defer dbConn.Close()
 
 	// Set up routes
-	http.HandleFunc("/api/register", api.RegisterHandler)
-	http.HandleFunc("/api/login", api.LoginHandler)
-	http.HandleFunc("/api/logout", api.LogoutHandler)
-	http.HandleFunc("/api/me", api.MeHandler)
-	http.HandleFunc("/api/games", api.GamesHandler)
-	http.HandleFunc("/api/games/join", api.JoinGameHandler)
-	http.HandleFunc("/api/games/move", api.MoveHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/register", api.RegisterHandler)
+	mux.HandleFunc("/api/login", api.LoginHandler)
+	mux.HandleFunc("/api/logout", api.LogoutHandler)
+	mux.HandleFunc("/api/me", api.MeHandler)
+	mux.HandleFunc("/api/games", api.GamesHandler)
+	mux.HandleFunc("/api/games/join", api.JoinGameHandler)
+	mux.HandleFunc("/api/games/move", api.MoveHandler)
+
+	// Wrap the mux with the CORS middleware
+	handler := api.CORSMiddleware(mux)
 
 	// Start HTTP server
 	log.Printf("Server is running on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
+import { registerUser } from '../services/authService';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
+    console.log('Registering user:', { username, email, password });
     e.preventDefault();
-    // Placeholder for registration logic
-    console.log('Registering with:', { username, email, password });
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await registerUser({ username, email, password });
+      console.log('Registration response:', response);
+      setSuccess(response.message);
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+    }
   };
 
   return (
@@ -48,6 +60,8 @@ const RegisterPage = () => {
         </div>
         <button type="submit">Register</button>
       </form>
+      {error && <p className="error-message">{error}</p>}
+      {success && <p className="success-message">{success}</p>}
     </div>
   );
 };
