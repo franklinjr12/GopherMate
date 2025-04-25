@@ -2,13 +2,30 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+
+	"gophermatebackend/internal/db"
+	"gophermatebackend/internal/utils"
 )
 
 func GamesHandler(w http.ResponseWriter, r *http.Request) {
-	// Placeholder for listing all open games
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "List of open games"})
+	dbConn, err := db.InitDB()
+	if err != nil {
+		log.Printf("GamesHandler: Failed to initialize database: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	defer dbConn.Close()
+
+	games, err := db.GetOpenGames(dbConn)
+	if err != nil {
+		log.Printf("GamesHandler: Failed to fetch games: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch games"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, games)
 }
 
 func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +35,7 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func MoveHandler(w http.ResponseWriter, r *http.Request) {
-	// Placeholder for submitting a move
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Move submitted successfully"})
 }
