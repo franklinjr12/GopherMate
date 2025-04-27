@@ -23,18 +23,24 @@ const GamesPage = () => {
   };
 
   return (
-    <div>
-      <h1>Available Games</h1>
-      <ul>
-        {games.map((game) => (
-          <li key={game.id}>
-            Game ID: {game.id} - Status: {game.status} - Player White: {game.player_white} - Player Black: {game.player_black}
-            {game.status === 'Open' && (
-              <button onClick={() => joinGame(game.id)}>Join</button>
-            )}
-          </li>
-        ))}
-      </ul>
+    <div className="games-page">
+      <div className="header">
+        <button onClick={() => window.location.href = '/create-game'}>Create Game</button>
+        <button onClick={() => window.location.href = '/logout'}>Logout</button>
+      </div>
+      <div className="games-list">
+        <h1>Available Games</h1>
+        <ul>
+          {games.map((game) => (
+            <li key={game.id}>
+              Game ID: {game.id} - Status: {game.status} - Player White: {game.player_white} - Player Black: {game.player_black}
+              {game.status === 'Open' && (
+                <button onClick={() => joinGame(game.id)}>Join</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
