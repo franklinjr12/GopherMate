@@ -14,6 +14,8 @@ const LoginPage = () => {
     try {
       const response = await loginUser({ username, password });
       alert('Success: ' + response.message);
+      localStorage.setItem('token', response.token);
+      window.location.href = '/games';
     } catch (err) {
       setError(err.message || 'Login failed');
     }
