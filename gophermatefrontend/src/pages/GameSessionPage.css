@@ -23,14 +23,17 @@
     flex: 1; /* Allow content to grow and fill available space */
 }
 
+/* Adjust the board height to ensure it fits within the viewport */
 .game-board {
     flex: 4; /* Allocate more space to the game board */
-    /* max-width: 800px; Increase max width for better visibility */
     background-color: #ddd;
     border: 2px solid #ccc;
     display: flex;
     justify-content: center;
     align-items: center;
+    height: calc(100vh - 150px); /* Adjust height to fit within the viewport minus header/footer */
+    max-height: 800px; /* Add a max height for better visibility */
+    overflow: hidden; /* Prevent overflow */
 }
 
 .side-actions {

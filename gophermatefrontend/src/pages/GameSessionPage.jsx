@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 
-import Board from '../chess/board';
+import Board, {InitializeBoard} from '../chess/board';
 import './GameSessionPage.css';
 
 const GameSessionPage = () => {
-    const [boardState, setBoardState] = useState([]);
-
-    useEffect(() => {
-        // Initialize board state or fetch game data
-    }, []);
+    const [boardState, setBoardState] = useState(InitializeBoard());
 
     function onMove(row, col) {
         // Handle the move logic here
