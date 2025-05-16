@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import './board.css';
 
 export function InitializeBoard() {
@@ -30,6 +30,43 @@ export function InitializeBoard() {
 };
 
 const Board = ({ boardState, onMove }) => {
+    // Timing and state refs
+    const mouseDownInfo = useRef({ time: 0, row: null, col: null, triggered: false });
+    const CLICK_THRESHOLD = 200; // ms
+
+    const handleMouseDown = (row, col) => {
+        mouseDownInfo.current = {
+            time: Date.now(),
+            row,
+            col,
+            triggered: false
+        };
+    };
+
+    const handleMouseUp = (row, col) => {
+        const now = Date.now();
+        const { time, row: downRow, col: downCol, triggered } = mouseDownInfo.current;
+        if (triggered) return; // Already handled
+        if (downRow === row && downCol === col && now - time < CLICK_THRESHOLD) {
+            // Treat as click
+            onMove('click', row, col);
+        } else {
+            // Treat as hold
+            onMove('mousedown', downRow, downCol);
+            onMove('mouseup', row, col);
+        }
+        mouseDownInfo.current.triggered = true;
+    };
+
+    const handleClick = (row, col) => {
+        // Prevent default click if already handled by timing logic
+        if (mouseDownInfo.current.triggered) {
+            mouseDownInfo.current.triggered = false;
+            return;
+        }
+        onMove('click', row, col);
+    };
+
     const renderSquare = (row, col) => {
         const isLightSquare = (row + col) % 2 === 0;
         const squareClass = isLightSquare ? 'light-square' : 'dark-square';
@@ -39,7 +76,9 @@ const Board = ({ boardState, onMove }) => {
             <div
                 key={`${row}-${col}`}
                 className={`square ${squareClass}`}
-                onClick={() => onMove(row, col)}
+                onClick={() => handleClick(row, col)}
+                onMouseDown={() => handleMouseDown(row, col)}
+                onMouseUp={() => handleMouseUp(row, col)}
             >
                 {piece && <div className={`piece ${piece}`}></div>}
             </div>
