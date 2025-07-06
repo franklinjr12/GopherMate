@@ -7,9 +7,10 @@ body, html {
   background: #2575fc;
 }
 
+
 .login-page {
-  height: 100%;
-  width: 100%;
+  min-height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -21,37 +22,50 @@ body, html {
   color: #fff;
 }
 
-.login-page h1 {
-  margin-bottom: 20px;
-  font-size: 2.5rem;
-  color: #fff;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.login-page form {
+.login-container {
   display: flex;
   flex-direction: column;
+  align-items: center;
   width: 100%;
   max-width: 400px;
-  padding: 30px;
+  padding: 30px 30px 20px 30px;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
   color: #333;
 }
 
-.login-page .form-group {
+
+.login-container h1 {
+  margin-bottom: 20px;
+  font-size: 2.5rem;
+  color: #2575fc;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.login-container form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+.login-container .form-group {
   margin-bottom: 20px;
 }
 
-.login-page label {
+.login-container label {
   display: block;
   margin-bottom: 8px;
   font-weight: bold;
   font-size: 1rem;
 }
 
-.login-page input {
+.login-container input {
   width: 100%;
   padding: 12px;
   border: 1px solid #ccc;
@@ -60,13 +74,13 @@ body, html {
   box-sizing: border-box;
 }
 
-.login-page input:focus {
+.login-container input:focus {
   border-color: #2575fc;
   outline: none;
   box-shadow: 0 0 5px rgba(37, 117, 252, 0.5);
 }
 
-.login-page button {
+.login-container button {
   padding: 12px 20px;
   background-color: #2575fc;
   color: #fff;
@@ -76,13 +90,28 @@ body, html {
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s, transform 0.2s;
+  margin-top: 10px;
+  width: 100%;
 }
 
-.login-page button:hover {
+.login-container button.btn-secondary {
+  background-color: #fff;
+  color: #2575fc;
+  border: 1px solid #2575fc;
+  margin-top: 10px;
+}
+
+.login-container button.btn-secondary:hover {
+  background-color: #e6e6e6;
+  color: #1a5bb8;
+}
+
+.login-container button:hover {
   background-color: #1a5bb8;
   transform: scale(1.05);
 }
 
-.login-page button:active {
+.login-container button:active {
   transform: scale(0.95);
 }
+

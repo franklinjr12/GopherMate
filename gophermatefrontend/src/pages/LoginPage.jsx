@@ -23,31 +23,40 @@ const LoginPage = () => {
 
   return (
     <div className="login-page">
-      <h1>Login</h1>
-      <form onSubmit={handleLogin}>
-        <div className="form-group">
-          <label htmlFor="username">Username</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      {error && <p className="error-message">{error}</p>}
+      <div className="login-container">
+        <h1>Login</h1>
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit">Login</button>
+        </form>
+        <button
+          type="button"
+          className="btn btn-secondary mt-3"
+          onClick={() => { window.location.href = '/register'; }}
+        >
+          Create New User
+        </button>
+        {error && <p className="error-message">{error}</p>}
+      </div>
     </div>
   );
 };
