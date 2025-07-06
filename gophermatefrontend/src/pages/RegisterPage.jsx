@@ -19,6 +19,9 @@ const RegisterPage = () => {
       const response = await registerUser({ username, email, password });
       console.log('Registration response:', response);
       setSuccess(response.message);
+      setTimeout(() => {
+        window.location.href = '/games';
+      }, 1000);
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
