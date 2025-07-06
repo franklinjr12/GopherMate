@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 type Game struct {
@@ -39,4 +41,16 @@ func GetOpenGames(db *sql.DB) ([]Game, error) {
 	}
 
 	return games, nil
+}
+
+// CreateGame inserts a new game into the database and returns the game ID.
+func CreateGame(db *sql.DB, playerWhiteID int64) (string, error) {
+	gameID := uuid.New().String()
+	query := `INSERT INTO games (id, player_white_id) VALUES ($1, $2)`
+	_, err := db.Exec(query, gameID, playerWhiteID)
+	if err != nil {
+		log.Printf("CreateGame: Failed to insert game: %v", err)
+		return "", err
+	}
+	return gameID, nil
 }

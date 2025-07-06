@@ -22,10 +22,29 @@ const GamesPage = () => {
       .then((data) => alert(data.message));
   };
 
+  const createGame = () => {
+    fetch('http://localhost:8080/api/games', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.id) {
+          // Redirect to the new game session page
+          window.location.href = `/gamesession/${data.id}`;
+        } else {
+          alert(data.message || 'Failed to create game');
+        }
+      })
+      .catch(() => alert('Failed to create game'));
+  };
+
   return (
     <div className="games-page">
       <div className="header">
-        <button onClick={() => window.location.href = '/create-game'}>Create Game</button>
+        <button onClick={createGame}>Create Game</button>
         <button onClick={() => window.location.href = '/logout'}>Logout</button>
       </div>
       <div className="games-list">

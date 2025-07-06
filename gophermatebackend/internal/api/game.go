@@ -47,3 +47,26 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Move submitted successfully"})
 }
+
+// CreateGameHandler handles POST /api/games
+func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
+	dbConn, err := db.InitDB()
+	if err != nil {
+		log.Printf("CreateGameHandler: Failed to initialize database: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	defer dbConn.Close()
+
+	// TODO: Get user ID from session (for now, use a placeholder or 1)
+	playerWhiteID := int64(1)
+
+	gameID, err := db.CreateGame(dbConn, playerWhiteID)
+	if err != nil {
+		log.Printf("CreateGameHandler: Failed to create game: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create game"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"id": gameID})
+}

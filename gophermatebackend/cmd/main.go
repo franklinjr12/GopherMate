@@ -21,7 +21,13 @@ func main() {
 	mux.HandleFunc("/api/login", api.LoginHandler)
 	mux.HandleFunc("/api/logout", api.LogoutHandler)
 	mux.HandleFunc("/api/me", api.MeHandler)
-	mux.HandleFunc("/api/games", api.GamesHandler)
+	mux.HandleFunc("/api/games", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			api.CreateGameHandler(w, r)
+			return
+		}
+		api.GamesHandler(w, r)
+	})
 	mux.HandleFunc("/api/games/join", api.JoinGameHandler)
 	mux.HandleFunc("/api/games/move", api.MoveHandler)
 
