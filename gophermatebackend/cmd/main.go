@@ -28,7 +28,21 @@ func main() {
 		}
 		api.GamesHandler(w, r)
 	})
-	mux.HandleFunc("/api/games/join", api.JoinGameHandler)
+	// ...existing code...
+	mux.HandleFunc("/api/games/", func(w http.ResponseWriter, r *http.Request) {
+		// Handle /api/games/{id}/join for joining a game
+		if r.Method == http.MethodPost && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-5:] == "/join" {
+			api.JoinGameHandler(w, r)
+			return
+		}
+		// Fallback to existing handler
+		if r.Method == http.MethodPost {
+			api.CreateGameHandler(w, r)
+			return
+		}
+		api.GamesHandler(w, r)
+	})
+	// ...existing code...
 	mux.HandleFunc("/api/games/move", api.MoveHandler)
 
 	// Wrap the mux with the CORS middleware

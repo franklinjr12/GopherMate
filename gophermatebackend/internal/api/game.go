@@ -1,9 +1,11 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"gophermatebackend/internal/db"
 	"gophermatebackend/internal/utils"
@@ -37,9 +39,37 @@ func GamesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
-	// Placeholder for joining a game
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Joined game successfully"})
+	dbConn, err := db.InitDB()
+	if err != nil {
+		log.Printf("JoinGameHandler: Failed to initialize database: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	defer dbConn.Close()
+
+	// Parse game ID from URL: /api/games/{id}/join
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid game join URL"})
+		return
+	}
+	gameID := parts[3]
+
+	// Get user ID from session (for now, use a placeholder or 2)
+	userID := int64(2) // TODO: Replace with session extraction
+
+	// Attempt to join the game as black
+	err = db.JoinGameAsBlack(dbConn, gameID, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
+			return
+		}
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Joined game successfully"})
 }
 
 func MoveHandler(w http.ResponseWriter, r *http.Request) {

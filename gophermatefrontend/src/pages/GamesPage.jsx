@@ -17,9 +17,16 @@ const GamesPage = () => {
   }, []);
 
   const joinGame = (id) => {
-    fetch(`/api/games/${id}/join`, { method: 'POST' })
+    fetch(`http://localhost:8080/api/games/${id}/join`, { method: 'POST' })
       .then((response) => response.json())
-      .then((data) => alert(data.message));
+      .then((data) => {
+        if (data.message) {
+          // Redirect to the game session page after joining
+          window.location.href = `/gamesession/${id}`;
+        } else {
+          alert(data.error || 'Failed to join game');
+        }
+      });
   };
 
   const createGame = () => {

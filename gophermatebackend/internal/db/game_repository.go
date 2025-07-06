@@ -7,6 +7,24 @@ import (
 	"github.com/google/uuid"
 )
 
+// JoinGameAsBlack sets the player_black_id for a game if not already set.
+func JoinGameAsBlack(db *sql.DB, gameID string, userID int64) error {
+	// Only allow joining if player_black_id is NULL
+	res, err := db.Exec(`UPDATE games SET player_black_id = $1 WHERE id = $2 AND player_black_id IS NULL`, userID, gameID)
+	if err != nil {
+		log.Printf("JoinGameAsBlack: Failed to update game: %v", err)
+		return err
+	}
+	count, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 type Game struct {
 	ID          string
 	PlayerWhite sql.NullInt64
