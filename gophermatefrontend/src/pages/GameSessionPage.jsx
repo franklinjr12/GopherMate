@@ -1,13 +1,43 @@
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
+import { useParams } from 'react-router-dom';
 
 import Board, {InitializeBoard} from '../chess/board';
 import './GameSessionPage.css';
 
+
 const GameSessionPage = () => {
+    const { id } = useParams();
     const [boardState, setBoardState] = useState(InitializeBoard());
     const [selected, setSelected] = useState(null); // For click-based selection
     const dragStart = useRef(null); // For mousedown/mouseup drag
+
+    function postMove(piece, from, to) {
+        console.log('Posting move:', piece, from, to);
+        // Send the move to the server
+        fetch('/api/games/move', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // sends in the format {'id': 'sa65s4165a4', 'piece': 'black-pawn', 'from': {'row': 1, 'col': 7}, 'to': {'row': 3, 'col': 7}}
+            body: JSON.stringify({'session': id, 'piece': piece, 'from': from, 'to': to}),
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.log('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Move posted successfully:', data);
+            return true;
+        })
+        .catch(error => {
+            console.error('Error posting move:', error);
+        });
+        return false;
+    }
 
     function onMove(action, row, col) {
         if (action === 'click') {
@@ -21,10 +51,14 @@ const GameSessionPage = () => {
                 const from = selected;
                 const to = { row, col };
                 if (from.row !== to.row || from.col !== to.col) {
-                    const newBoard = boardState.map(r => r.slice());
-                    newBoard[to.row][to.col] = newBoard[from.row][from.col];
-                    newBoard[from.row][from.col] = null;
-                    setBoardState(newBoard);
+                    // Post the move to the server
+                    const moveOk = postMove(boardState[from.row][from.col], from, to);
+                    if (moveOk) {
+                        const newBoard = boardState.map(r => r.slice());
+                        newBoard[to.row][to.col] = newBoard[from.row][from.col];
+                        newBoard[from.row][from.col] = null;
+                        setBoardState(newBoard);
+                    }
                 }
                 setSelected(null);
             }
@@ -39,10 +73,13 @@ const GameSessionPage = () => {
             // End drag and move
             const from = dragStart.current;
             if (from && (from.row !== row || from.col !== col)) {
-                const newBoard = boardState.map(r => r.slice());
-                newBoard[row][col] = newBoard[from.row][from.col];
-                newBoard[from.row][from.col] = null;
-                setBoardState(newBoard);
+                const moveOk = postMove(boardState[from.row][from.col], from, to);
+                if (moveOk) {
+                    const newBoard = boardState.map(r => r.slice());
+                    newBoard[row][col] = newBoard[from.row][from.col];
+                    newBoard[from.row][from.col] = null;
+                    setBoardState(newBoard);
+                }
             }
             dragStart.current = null;
         }

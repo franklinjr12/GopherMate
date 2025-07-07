@@ -31,7 +31,22 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, map[string]string{"message": "User registered successfully"})
+	// Fetch the user to get the ID (in case it's not set)
+	createdUser, err := db.GetUserByUsername(user.Username)
+	if err != nil {
+		log.Printf("RegisterHandler: Failed to fetch created user: %v\n", err)
+		http.Error(w, "Failed to fetch user after registration", http.StatusInternalServerError)
+		return
+	}
+
+	sessionToken, err := db.CreateSession(createdUser.ID)
+	if err != nil {
+		log.Printf("RegisterHandler: Failed to create session: %v\n", err)
+		http.Error(w, "Failed to create session", http.StatusInternalServerError)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, map[string]string{"message": "User registered successfully", "token": sessionToken})
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
