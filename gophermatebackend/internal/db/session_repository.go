@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,4 +24,14 @@ func CreateSession(userID int) (string, error) {
 	}
 
 	return sessionToken, nil
+}
+
+func GetUserIDBySessionToken(db *sql.DB, sessionToken string) (int64, error) {
+	var userID int64
+	query := "SELECT user_id FROM sessions WHERE token = $1 AND expires_at > NOW()"
+	row := db.QueryRow(query, sessionToken)
+	if err := row.Scan(&userID); err != nil {
+		return 0, err
+	}
+	return userID, nil
 }

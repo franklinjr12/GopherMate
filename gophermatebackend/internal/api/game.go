@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gophermatebackend/internal/db"
+	"gophermatebackend/internal/movevalidation"
 	"gophermatebackend/internal/utils"
 )
 
@@ -74,8 +75,69 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 
 func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Move submitted successfully"})
+
+	// Parse request body
+	var moveReq struct {
+		Session string `json:"session"`
+		User    string `json:"user"`
+		Piece   string `json:"piece"`
+		From    struct {
+			Row int `json:"row"`
+			Col int `json:"col"`
+		} `json:"from"`
+		To struct {
+			Row int `json:"row"`
+			Col int `json:"col"`
+		} `json:"to"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&moveReq); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	dbConn, err := db.InitDB()
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	defer dbConn.Close()
+
+	// Validate that the incoming User(token) from the data matches a existing user session from the database
+	userID, err := db.GetUserIDBySessionToken(dbConn, moveReq.User)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
+		return
+	}
+
+	// Validate that the userID is from the game session provided by incoming Session
+	ok, err := db.ValidateUserInGameSession(dbConn, moveReq.Session, userID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not part of the game session"})
+		return
+	}
+
+	// Validate move
+	valid, err := movevalidation.ValidateMove(movevalidation.MoveData{
+		Piece: moveReq.Piece,
+		From:  movevalidation.Position{Row: moveReq.From.Row, Col: moveReq.From.Col},
+		To:    movevalidation.Position{Row: moveReq.To.Row, Col: moveReq.To.Col},
+	})
+	if err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	if !valid {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid move"})
+		return
+	}
+
+	// TODO: Save move to DB, update game state, etc.
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Move submitted successfully"})
 }
 
 // CreateGameHandler handles POST /api/games

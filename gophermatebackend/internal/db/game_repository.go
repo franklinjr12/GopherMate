@@ -72,3 +72,14 @@ func CreateGame(db *sql.DB, playerWhiteID int64) (string, error) {
 	}
 	return gameID, nil
 }
+
+// ValidateUserInGameSession checks if the user is a participant in the game (white or black)
+func ValidateUserInGameSession(db *sql.DB, gameID string, userID int64) (bool, error) {
+	var count int
+	query := `SELECT COUNT(1) FROM games WHERE id = $1 AND (player_white_id = $2 OR player_black_id = $2)`
+	err := db.QueryRow(query, gameID, userID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

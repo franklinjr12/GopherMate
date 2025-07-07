@@ -11,35 +11,32 @@ const GameSessionPage = () => {
     const [boardState, setBoardState] = useState(InitializeBoard());
     const [selected, setSelected] = useState(null); // For click-based selection
     const dragStart = useRef(null); // For mousedown/mouseup drag
+    const userToken = localStorage.getItem('token'); // Assuming user token is stored in localStorage
 
-    function postMove(piece, from, to) {
+    async function postMove(piece, from, to) {
         console.log('Posting move:', piece, from, to);
-        // Send the move to the server
-        fetch('/api/games/move', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            // sends in the format {'id': 'sa65s4165a4', 'piece': 'black-pawn', 'from': {'row': 1, 'col': 7}, 'to': {'row': 3, 'col': 7}}
-            body: JSON.stringify({'session': id, 'piece': piece, 'from': from, 'to': to}),
-        })
-        .then(response => {
+        try {
+            const response = await fetch('/api/games/move', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({'session': id, 'user': userToken, 'piece': piece, 'from': from, 'to': to}),
+            });
             if (!response.ok) {
                 console.log('Network response was not ok');
+                return false;
             }
-            return response.json();
-        })
-        .then(data => {
+            const data = await response.json();
             console.log('Move posted successfully:', data);
             return true;
-        })
-        .catch(error => {
+        } catch (error) {
             console.error('Error posting move:', error);
-        });
-        return false;
+            return false;
+        }
     }
 
-    function onMove(action, row, col) {
+    async function onMove(action, row, col) {
         if (action === 'click') {
             if (!selected) {
                 // First click: select piece if present
@@ -52,7 +49,7 @@ const GameSessionPage = () => {
                 const to = { row, col };
                 if (from.row !== to.row || from.col !== to.col) {
                     // Post the move to the server
-                    const moveOk = postMove(boardState[from.row][from.col], from, to);
+                    const moveOk = await postMove(boardState[from.row][from.col], from, to);
                     if (moveOk) {
                         const newBoard = boardState.map(r => r.slice());
                         newBoard[to.row][to.col] = newBoard[from.row][from.col];
@@ -73,7 +70,7 @@ const GameSessionPage = () => {
             // End drag and move
             const from = dragStart.current;
             if (from && (from.row !== row || from.col !== col)) {
-                const moveOk = postMove(boardState[from.row][from.col], from, to);
+                const moveOk = await postMove(boardState[from.row][from.col], from, { row, col });
                 if (moveOk) {
                     const newBoard = boardState.map(r => r.slice());
                     newBoard[row][col] = newBoard[from.row][from.col];
