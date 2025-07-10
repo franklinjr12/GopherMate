@@ -35,10 +35,12 @@ const GamesPage = () => {
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ player_token: localStorage.getItem('token') || ''}),
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.id) {
+          console.log('Create game response:', data);
           // Redirect to the new game session page
           window.location.href = `/gamesession/${data.id}`;
         } else {

@@ -74,8 +74,7 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func MoveHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
+	log.Printf("MoveHandler: Received request for %s", r.URL.Path)
 	// Parse request body
 	var moveReq struct {
 		Session string `json:"session"`
@@ -91,12 +90,14 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		} `json:"to"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&moveReq); err != nil {
+		log.Printf("MoveHandler: Failed to decode request body: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
 	dbConn, err := db.InitDB()
 	if err != nil {
+		log.Printf("MoveHandler: Failed to initialize database: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
@@ -105,6 +106,7 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate that the incoming User(token) from the data matches a existing user session from the database
 	userID, err := db.GetUserIDBySessionToken(dbConn, moveReq.User)
 	if err != nil {
+		log.Printf("MoveHandler: Invalid user token: %v", err)
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
 		return
 	}
@@ -112,10 +114,12 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate that the userID is from the game session provided by incoming Session
 	ok, err := db.ValidateUserInGameSession(dbConn, moveReq.Session, userID)
 	if err != nil {
+		log.Printf("MoveHandler: Failed to validate user in game session: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
 	if !ok {
+		log.Printf("MoveHandler: User %d is not part of game session %s", userID, moveReq.Session)
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not part of the game session"})
 		return
 	}
@@ -127,16 +131,19 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		To:    movevalidation.Position{Row: moveReq.To.Row, Col: moveReq.To.Col},
 	})
 	if err != nil {
+		log.Printf("MoveHandler: Move validation error: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	if !valid {
+		log.Printf("MoveHandler: Invalid move for user %d in session %s", userID, moveReq.Session)
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid move"})
 		return
 	}
 
 	// TODO: Save move to DB, update game state, etc.
 
+	log.Printf("MoveHandler: Move submitted successfully by user %d in session %s", userID, moveReq.Session)
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Move submitted successfully"})
 }
 
@@ -144,18 +151,28 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	dbConn, err := db.InitDB()
 	if err != nil {
-		log.Printf("CreateGameHandler: Failed to initialize database: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
 	defer dbConn.Close()
 
-	// TODO: Get user ID from session (for now, use a placeholder or 1)
-	playerWhiteID := int64(1)
+	var req struct {
+		PlayerToken string `json:"player_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	// Get user ID from session token
+	playerWhiteID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
+	if err != nil || playerWhiteID <= 0 {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid player token"})
+		return
+	}
 
 	gameID, err := db.CreateGame(dbConn, playerWhiteID)
 	if err != nil {
-		log.Printf("CreateGameHandler: Failed to create game: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create game"})
 		return
 	}

@@ -16,14 +16,17 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			// Restore the io.ReadCloser to its original state
 			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
-		log.Printf("%s %s Payload: %s", r.Method, r.URL.Path, string(bodyBytes))
+		var logMessage string
+		if r.Method == http.MethodPost || r.Method == http.MethodPut {
+			logMessage = "Payload: " + string(bodyBytes)
+		}
+		log.Printf("%s %s %s", r.Method, r.URL.Path, logMessage)
 		next.ServeHTTP(w, r)
 	})
 }
 
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("CORS request: %s %s", r.Method, r.URL.Path)
 
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173") // Allow requests from your frontend
