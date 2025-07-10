@@ -36,8 +36,9 @@ func main() {
 	})
 	mux.HandleFunc("/api/games/move", api.MoveHandler)
 
-	// Wrap the mux with the CORS middleware
+	// Wrap the mux with the Logging and CORS middleware
 	handler := api.CORSMiddleware(mux)
+	// handler := api.LoggingMiddleware(api.CORSMiddleware(mux))
 
 	// Start HTTP server
 	log.Printf("Server is running on port %s", port)

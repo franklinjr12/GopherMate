@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -19,7 +18,7 @@ type Config struct {
 func LoadConfig() *Config {
 	// Load environment variables from .env file if it exists
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment variables")
+		// log.Println("No .env file found, using system environment variables")
 	}
 
 	return &Config{
