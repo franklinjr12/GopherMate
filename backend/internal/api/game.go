@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"gophermatebackend/internal/cache"
 	"gophermatebackend/internal/db"
 	"gophermatebackend/internal/movevalidation"
 	"gophermatebackend/internal/utils"
@@ -89,14 +90,12 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		} `json:"to"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&moveReq); err != nil {
-		log.Printf("MoveHandler: Failed to decode request body: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
 	dbConn, err := db.InitDB()
 	if err != nil {
-		log.Printf("MoveHandler: Failed to initialize database: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
@@ -105,7 +104,6 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate that the incoming User(token) from the data matches a existing user session from the database
 	userID, err := db.GetUserIDBySessionToken(dbConn, moveReq.User)
 	if err != nil {
-		log.Printf("MoveHandler: Invalid user token: %v", err)
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
 		return
 	}
@@ -113,36 +111,42 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	// Validate that the userID is from the game session provided by incoming Session
 	ok, err := db.ValidateUserInGameSession(dbConn, moveReq.Session, userID)
 	if err != nil {
-		log.Printf("MoveHandler: Failed to validate user in game session: %v", err)
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
 	if !ok {
-		log.Printf("MoveHandler: User %d is not part of game session %s", userID, moveReq.Session)
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not part of the game session"})
 		return
 	}
 
+	board := cache.GetBoard(moveReq.Session)
+	if board == nil {
+		utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
+		return
+	}
+
 	// Validate move
-	valid, err := movevalidation.ValidateMove(movevalidation.MoveData{
+	valid, err := movevalidation.ValidateMove(board, movevalidation.MoveData{
 		Piece: moveReq.Piece,
 		From:  movevalidation.Position{Row: moveReq.From.Row, Col: moveReq.From.Col},
 		To:    movevalidation.Position{Row: moveReq.To.Row, Col: moveReq.To.Col},
 	})
 	if err != nil {
-		log.Printf("MoveHandler: Move validation error: %v", err)
+		log.Printf("MoveHandler: Invalid move: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	if !valid {
-		log.Printf("MoveHandler: Invalid move for user %d in session %s", userID, moveReq.Session)
+		log.Printf("MoveHandler: Invalid move: %v", err)
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid move"})
 		return
 	}
 
 	// TODO: Save move to DB, update game state, etc.
+	board.Squares[moveReq.To.Row][moveReq.To.Col] = moveReq.Piece
+	board.Squares[moveReq.From.Row][moveReq.From.Col] = "" // Clear the from square
+	board.LastMove = moveReq.Piece[:5]                     // Update last move to the piece that just moved
 
-	log.Printf("MoveHandler: Move submitted successfully by user %d in session %s", userID, moveReq.Session)
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Move submitted successfully"})
 }
 
@@ -174,6 +178,12 @@ func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create game"})
 		return
+	}
+
+	// Check if a board already exists for this gameID (should not, but for safety)
+	// If not, create and cache a new board
+	if cache.GetBoard(gameID) == nil {
+		cache.SetBoard(gameID, cache.NewInitialBoard())
 	}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"id": gameID})

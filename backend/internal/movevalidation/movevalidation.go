@@ -2,6 +2,7 @@ package movevalidation
 
 import (
 	"errors"
+	"gophermatebackend/internal/cache"
 )
 
 type Position struct {
@@ -16,10 +17,15 @@ type MoveData struct {
 }
 
 // ValidateMove is the entrypoint for move validation. It dispatches to the correct piece validator.
-func ValidateMove(move MoveData) (bool, error) {
+func ValidateMove(board *cache.Board, move MoveData) (bool, error) {
+	// check if the move is from the opposing player
+	if (board.LastMove == "white" && move.Piece[:5] == "white") ||
+		(board.LastMove == "black" && move.Piece[:5] == "black") {
+		return false, errors.New("it's not your turn")
+	}
 	switch {
 	case isPiece(move.Piece, "pawn"):
-		return validatePawnMove(move)
+		return validatePawnMove(board, move)
 	case isPiece(move.Piece, "rook"):
 		return validateRookMove(move)
 	case isPiece(move.Piece, "knight"):
@@ -93,32 +99,59 @@ func validateRookMove(move MoveData) (bool, error) {
 }
 
 // validatePawnMove validates pawn moves (basic forward, capture, double move, no en passant yet)
-func validatePawnMove(move MoveData) (bool, error) {
+func validatePawnMove(board *cache.Board, move MoveData) (bool, error) {
 	// White pawns move up (row decreases), black pawns move down (row increases)
 	rowDir := 1
 	startRow := 1
+	myColor := "black"
 	if move.Piece == "white-pawn" {
 		rowDir = -1
 		startRow = 6
+		myColor = "white"
 	}
 	deltaRow := move.To.Row - move.From.Row
 	deltaCol := move.To.Col - move.From.Col
 
-	// Forward move
+	// Forward move (no capture)
 	if deltaCol == 0 {
+		// Single forward
 		if deltaRow == rowDir {
-			return true, nil // single forward
+			if board.Squares[move.To.Row][move.To.Col] == "" {
+				return true, nil
+			}
+			return false, errors.New("Pawn cannot move forward to occupied square")
 		}
+		// Double forward from start
 		if move.From.Row == startRow && deltaRow == 2*rowDir {
-			return true, nil // double forward from start
+			midRow := move.From.Row + rowDir
+			if board.Squares[midRow][move.From.Col] == "" && board.Squares[move.To.Row][move.To.Col] == "" {
+				return true, nil
+			}
+			return false, errors.New("Pawn cannot jump over or land on occupied square")
 		}
 	}
+
 	// Capture (diagonal)
 	if abs(deltaCol) == 1 && deltaRow == rowDir {
-		// In real chess, must check if target square has opponent piece
-		return true, nil // allow for now
+		target := board.Squares[move.To.Row][move.To.Col]
+		if target != "" && isOpponentPiece(target, myColor) {
+			return true, nil
+		}
+		return false, errors.New("Pawn capture must target opponent piece")
 	}
+
 	return false, errors.New("Invalid pawn move")
+}
+
+// isOpponentPiece checks if a piece string belongs to the opponent color.
+func isOpponentPiece(piece, myColor string) bool {
+	if myColor == "white" {
+		return len(piece) > 6 && piece[:5] == "black"
+	}
+	if myColor == "black" {
+		return len(piece) > 5 && piece[:5] == "white"
+	}
+	return false
 }
 
 func abs(x int) int {
