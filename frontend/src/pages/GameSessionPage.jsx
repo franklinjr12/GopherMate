@@ -22,7 +22,6 @@ const GameSessionPage = () => {
                 from,
                 to,
             });
-            console.log('Move posted successfully:', data);
             return true;
         } catch (error) {
             alert('Invalid move');

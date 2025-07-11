@@ -74,7 +74,6 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func MoveHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("MoveHandler: Received request for %s", r.URL.Path)
 	// Parse request body
 	var moveReq struct {
 		Session string `json:"session"`
