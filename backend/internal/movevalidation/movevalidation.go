@@ -27,15 +27,15 @@ func ValidateMove(board *cache.Board, move MoveData) (bool, error) {
 	case isPiece(move.Piece, "pawn"):
 		return validatePawnMove(board, move)
 	case isPiece(move.Piece, "rook"):
-		return validateRookMove(move)
+		return validateRookMove(board, move)
 	case isPiece(move.Piece, "knight"):
-		return validateKnightMove(move)
+		return validateKnightMove(board, move)
 	case isPiece(move.Piece, "bishop"):
-		return validateBishopMove(move)
+		return validateBishopMove(board, move)
 	case isPiece(move.Piece, "queen"):
-		return validateQueenMove(move)
+		return validateQueenMove(board, move)
 	case isPiece(move.Piece, "king"):
-		return validateKingMove(move)
+		return validateKingMove(board, move)
 	default:
 		return false, errors.New("Unknown piece type")
 	}
@@ -46,56 +46,115 @@ func isPiece(piece, name string) bool {
 }
 
 // validateKingMove validates king moves (one square in any direction, no castling yet)
-func validateKingMove(move MoveData) (bool, error) {
+func validateKingMove(board *cache.Board, move MoveData) (bool, error) {
 	deltaRow := abs(move.To.Row - move.From.Row)
 	deltaCol := abs(move.To.Col - move.From.Col)
 	if (deltaRow <= 1 && deltaCol <= 1) && (deltaRow != 0 || deltaCol != 0) {
-		return true, nil
+		dest := board.Squares[move.To.Row][move.To.Col]
+		if dest == "" || isOpponentPiece(dest, getColor(move.Piece)) {
+			return true, nil
+		}
+		return false, errors.New("King cannot move to a square occupied by friendly piece")
 	}
 	return false, errors.New("Invalid king move")
 }
 
 // validateQueenMove validates queen moves (combines rook and bishop logic)
-func validateQueenMove(move MoveData) (bool, error) {
+func validateQueenMove(board *cache.Board, move MoveData) (bool, error) {
 	// Queen moves like rook or bishop
-	okRook, _ := validateRookMove(move)
-	okBishop, _ := validateBishopMove(move)
-	if okRook || okBishop {
+	okRook, _ := validateRookMove(board, move)
+	if okRook {
+		return true, nil
+	}
+	okBishop, _ := validateBishopMove(board, move)
+	if okBishop {
 		return true, nil
 	}
 	return false, errors.New("Invalid queen move")
 }
 
 // validateBishopMove validates bishop moves (diagonal, any distance, no jumping check)
-func validateBishopMove(move MoveData) (bool, error) {
-	deltaRow := abs(move.To.Row - move.From.Row)
-	deltaCol := abs(move.To.Col - move.From.Col)
-	// Bishop moves only if row and col change by the same amount (diagonal)
-	if deltaRow == deltaCol && deltaRow != 0 {
-		return true, nil
+func validateBishopMove(board *cache.Board, move MoveData) (bool, error) {
+	deltaRow := move.To.Row - move.From.Row
+	deltaCol := move.To.Col - move.From.Col
+	if abs(deltaRow) == abs(deltaCol) && deltaRow != 0 {
+		rowStep := 1
+		if deltaRow < 0 {
+			rowStep = -1
+		}
+		colStep := 1
+		if deltaCol < 0 {
+			colStep = -1
+		}
+		r, c := move.From.Row+rowStep, move.From.Col+colStep
+		for r != move.To.Row && c != move.To.Col {
+			if board.Squares[r][c] != "" {
+				return false, errors.New("Bishop cannot jump over pieces")
+			}
+			r += rowStep
+			c += colStep
+		}
+		dest := board.Squares[move.To.Row][move.To.Col]
+		if dest == "" || isOpponentPiece(dest, getColor(move.Piece)) {
+			return true, nil
+		}
+		return false, errors.New("Bishop cannot move to a square occupied by friendly piece")
 	}
 	return false, errors.New("Invalid bishop move")
 }
 
 // validateKnightMove validates knight (horse) moves (L-shape: 2 by 1 or 1 by 2)
-func validateKnightMove(move MoveData) (bool, error) {
+func validateKnightMove(board *cache.Board, move MoveData) (bool, error) {
 	deltaRow := abs(move.To.Row - move.From.Row)
 	deltaCol := abs(move.To.Col - move.From.Col)
 	if (deltaRow == 2 && deltaCol == 1) || (deltaRow == 1 && deltaCol == 2) {
-		return true, nil
+		dest := board.Squares[move.To.Row][move.To.Col]
+		if dest == "" || isOpponentPiece(dest, getColor(move.Piece)) {
+			return true, nil
+		}
+		return false, errors.New("Knight cannot move to a square occupied by friendly piece")
 	}
 	return false, errors.New("Invalid knight move")
 }
 
 // validateRookMove validates rook moves (horizontal or vertical, any distance, no jumping check)
-func validateRookMove(move MoveData) (bool, error) {
+func validateRookMove(board *cache.Board, move MoveData) (bool, error) {
 	deltaRow := move.To.Row - move.From.Row
 	deltaCol := move.To.Col - move.From.Col
-	// Rook moves only if either row or col is unchanged, but not both
 	if (deltaRow == 0 && deltaCol != 0) || (deltaCol == 0 && deltaRow != 0) {
-		return true, nil
+		rowStep, colStep := 0, 0
+		if deltaRow != 0 {
+			rowStep = deltaRow / abs(deltaRow)
+		}
+		if deltaCol != 0 {
+			colStep = deltaCol / abs(deltaCol)
+		}
+		r, c := move.From.Row+rowStep, move.From.Col+colStep
+		for r != move.To.Row || c != move.To.Col {
+			if board.Squares[r][c] != "" {
+				return false, errors.New("Rook cannot jump over pieces")
+			}
+			r += rowStep
+			c += colStep
+		}
+		dest := board.Squares[move.To.Row][move.To.Col]
+		if dest == "" || isOpponentPiece(dest, getColor(move.Piece)) {
+			return true, nil
+		}
+		return false, errors.New("Rook cannot move to a square occupied by friendly piece")
 	}
 	return false, errors.New("Invalid rook move")
+}
+
+// getColor returns the color of the piece ("white" or "black")
+func getColor(piece string) string {
+	if len(piece) >= 6 && piece[:5] == "white" {
+		return "white"
+	}
+	if len(piece) >= 6 && piece[:5] == "black" {
+		return "black"
+	}
+	return ""
 }
 
 // validatePawnMove validates pawn moves (basic forward, capture, double move, no en passant yet)
