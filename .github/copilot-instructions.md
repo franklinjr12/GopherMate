@@ -1,62 +1,63 @@
 ## GitHub Copilot Agent Instructions for GopherMate
 
-### Project Overview
-GopherMate is a fullstack online chess system with a React (JavaScript) frontend, a Go backend (using only standard libraries), and a PostgreSQL database. The project is modular, simple, and uses REST APIs for all communication. No ORMs or external router libraries are used. All chess logic (move validation, checkmate detection) is implemented on both frontend and backend.
+### Project Architecture & Purpose
+GopherMate is a fullstack online chess system for practicing and showcasing fullstack skills. It uses:
+- **Frontend:** React (JavaScript, Vite, React Router, no TypeScript)
+- **Backend:** Go (standard library only, no frameworks)
+- **Database:** PostgreSQL (raw SQL, no ORM)
+All communication is via REST APIs. Chess logic (move validation, checkmate detection) is implemented on both frontend and backend.
 
-### Coding Guidelines
+### Key Conventions & Patterns
+- **File Structure:**
+  - See `docs/project_summary.md` for canonical structure. Follow the separation: `frontend/` (React), `backend/` (Go), with further breakdown into `components/`, `features/`, `pages/`, `services/`, `chess/` (frontend) and `cmd/`, `internal/api/`, `internal/db/`, `internal/model/`, `internal/utils/` (backend).
+  - CSS files are placed next to their corresponding JS files.
+- **Identifiers:** Use UUIDs for games and sessions.
+- **Database:** Write all SQL queries manually in Go files. Use the schema in `docs/project_summary.md` and `backend/db/schema.sql`.
+- **Authentication:** Custom session tokens stored in the database (not JWT).
+- **Frontend State:** Use local state, React Context, or minimal custom logic. No Redux or similar libraries.
+- **UI:** Use Bootstrap components if needed, but keep third-party libraries minimal.
+- **Communication:** Use REST endpoints and polling (no WebSockets).
 
-#### General
-- Always use a three step process when asked a new implementation:
-  1. **Read**: Read any relevant files and code to this implementation.
-  2. **Plan**: Outline the approach and structure.
-  3. **Implement**: Ask if there are any changes to the plan, if ok then write the code.
-- Use the project structure and naming conventions as described in `docs/project_summary.md`.
-- Use plain JavaScript for React code (no TypeScript).
-- Use Go standard library for backend (no frameworks, no external router libraries).
-- Use raw SQL queries for all database access (no ORM).
-- Use UUIDs for resource identifiers (games, sessions).
-- Use REST endpoints for all game communication.
-- Keep code modular, simple, and readable.
-- Use Bootstrap components for UI, but keep third-party libraries to a minimum.
-- CSS files should be placed next to their corresponding JS files.
+### Developer Workflows
+- **Frontend:**
+  - Start dev server: `npm run dev` in `frontend/`
+  - Build: `npm run build`
+  - Lint: `npm run lint`
+  - Main entry: `src/main.jsx`, routes in `src/pages/`
+  - API calls: via `src/services/` (e.g., `authService.js`, `gameService.js`)
+- **Backend:**
+  - Start server: build and run `cmd/main.go` (e.g., `go run ./cmd/main.go`)
+  - DB connection: configured via environment variables or `.env` (see `internal/utils/config.go`)
+  - Endpoints: defined in `internal/api/` (e.g., `auth.go`, `game.go`)
+  - All SQL is raw, in `internal/db/` files
+- **Database:**
+  - Schema: see `backend/db/schema.sql` and `docs/project_summary.md`
+  - Use psql or a GUI for migrations; no migration tool is included
 
-#### Frontend (React)
-- Use Vite for project setup.
-- Use React Router for routing.
-- Use local component state, React Context, or minimal custom logic for state management.
-- Organize code into `components/`, `features/`, `pages/`, `services/`, `utils/`, and `chess/` as per the project summary.
-- Implement chess move validation logic in `src/chess/moveValidator.js` and related files.
-- Use REST API calls for all backend communication (no WebSockets).
-- Use polling for game state updates.
+### REST API Endpoints
+- See `docs/project_summary.md` for full list. Examples:
+  - `POST /api/register` — Register user
+  - `POST /api/login` — Login, returns session token
+  - `GET /api/games` — List open games
+  - `POST /api/games` — Create game
+  - `POST /api/games/:id/join` — Join game
+  - `POST /api/games/move` — Submit move
 
-#### Backend (Go)
-- Use `net/http` and `database/sql` from the standard library.
-- Use `lib/pq` for PostgreSQL driver.
-- Use `golang.org/x/crypto/bcrypt` for password hashing.
-- Organize code into `cmd/`, `internal/api/`, `internal/db/`, `internal/model/`, and `internal/utils/` as per the project summary.
-- Implement authentication using custom session tokens stored in the database.
-- Write all SQL queries manually in the repository files.
+### Project-Specific Notes
+- **Move validation** is implemented in both frontend (`src/chess/`) and backend (`internal/movevalidation/`).
+- **Session tokens** are required for all authenticated endpoints; stored in localStorage on frontend.
+- **No ORMs, no external router libraries, no Redux.**
+- **Chess logic**: Both client and server validate moves. See `src/chess/` and `internal/movevalidation/`.
+- **Environment:**
+  - Node.js: 22.13
+  - Go: 1.22
+  - OS: Windows
 
-#### Database
-- Use the schema provided in `docs/project_summary.md` for `users`, `games`, `moves`, and `sessions` tables.
-- Use raw SQL for all migrations and queries.
-
-#### Endpoints
-- Follow the REST API endpoints and methods as described in the project summary for authentication, game management, and gameplay.
-
-#### Best Practices
-- Write clear, concise, and well-documented code.
-- Keep logic separated by concern (UI, API, DB, utils, etc.).
+### Best Practices
+- Keep code modular and simple; separate UI, API, DB, and utility logic.
+- Use comments for non-obvious logic, especially chess rules and move validation.
 - Avoid unnecessary dependencies.
-- Use comments to explain non-obvious logic, especially for chess rules and move validation.
-
-### Example File Structure
-Refer to `docs/project_summary.md` for the canonical file and folder structure for both frontend and backend.
-
-### Environment
-- Node.js version: 22.13
-- Go version: 1.22
-- OS: Windows
+- Reference `docs/project_summary.md` for canonical structure and conventions.
 
 ---
 These instructions are for GitHub Copilot Agent Mode. Use them to ensure code completions and suggestions are consistent with the GopherMate project standards.
