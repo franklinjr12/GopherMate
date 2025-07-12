@@ -57,8 +57,21 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	gameID := parts[3]
 
-	// Get user ID from session (for now, use a placeholder or 2)
-	userID := int64(2) // TODO: Replace with session extraction
+	// Parse session token from request body
+	var req struct {
+		PlayerToken string `json:"player_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	// Get user ID from session token
+	userID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
+		return
+	}
 
 	// Attempt to join the game as black
 	err = db.JoinGameAsBlack(dbConn, gameID, userID)
@@ -119,9 +132,35 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Determine which color the user is in this game
+	color, err := db.GetUserColorInGame(dbConn, moveReq.Session, userID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to determine player color"})
+		return
+	}
+	if color == "" {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not a player in this game"})
+		return
+	}
+
 	board := cache.GetBoard(moveReq.Session)
 	if board == nil {
 		utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
+		return
+	}
+
+	// Determine whose turn it is using board.LastMove
+	var turnColor string
+	switch board.LastMove {
+	case "white":
+		turnColor = "black"
+	case "black":
+		turnColor = "white"
+	default:
+		turnColor = "white" // fallback to white if unset
+	}
+	if color != turnColor {
+		utils.WriteJSON(w, http.StatusForbidden, map[string]string{"error": "It is not your turn"})
 		return
 	}
 

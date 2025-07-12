@@ -24,7 +24,7 @@ const GameSessionPage = () => {
             });
             return true;
         } catch (error) {
-            alert('Invalid move');
+            alert('Invalid move: ' + error.error);
             return false;
         }
     }

@@ -17,7 +17,13 @@ const GamesPage = () => {
   }, []);
 
   const joinGame = (id) => {
-    fetch(`http://localhost:8080/api/games/${id}/join`, { method: 'POST' })
+    fetch(`http://localhost:8080/api/games/${id}/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ player_token: localStorage.getItem('token') || ''}),
+    })
       .then((response) => response.json())
       .then((data) => {
         if (data.message) {
