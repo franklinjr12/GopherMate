@@ -181,10 +181,26 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Save move to DB, update game state, etc.
+	// Build notation: color-piece e2->e4
+	from := string(rune('a'+moveReq.From.Col)) + string(rune('1'+(7-moveReq.From.Row)))
+	to := string(rune('a'+moveReq.To.Col)) + string(rune('1'+(7-moveReq.To.Row)))
+	notation := moveReq.Piece + " " + from + "->" + to
+
+	err = db.SaveMove(dbConn, moveReq.Session, userID, notation)
+	if err != nil {
+		log.Printf("MoveHandler: Failed to save move: %v", err)
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save move"})
+		return
+	}
+
+	// Update board state in cache
 	board.Squares[moveReq.To.Row][moveReq.To.Col] = moveReq.Piece
 	board.Squares[moveReq.From.Row][moveReq.From.Col] = "" // Clear the from square
-	board.LastMove = moveReq.Piece[:5]                     // Update last move to the piece that just moved
+	if color == "white" {
+		board.LastMove = "white"
+	} else {
+		board.LastMove = "black"
+	}
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Move submitted successfully"})
 }
