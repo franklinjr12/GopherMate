@@ -12,6 +12,62 @@ const GameSessionPage = () => {
     const [selected, setSelected] = useState(null); // For click-based selection
     const dragStart = useRef(null); // For mousedown/mouseup drag
     const userToken = localStorage.getItem('token'); // Assuming user token is stored in localStorage
+    const [lastMoveNumber, setLastMoveNumber] = useState(0); // Track last move number
+    const [lastMoveNotation, setLastMoveNotation] = useState(''); // Track last move notation
+
+    // Helper to parse notation like "white-pawn e2->e4" and update boardState
+    function applyNotationToBoard(notation) {
+        if (!notation) return;
+        // Example: "white-pawn e2->e4"
+        const match = notation.match(/^(\w+-\w+)\s+([a-h][1-8])->([a-h][1-8])$/);
+        if (!match) return;
+        const [, piece, from, to] = match;
+        // Convert algebraic to board indices
+        function algebraicToIndex(square) {
+            const col = square.charCodeAt(0) - 'a'.charCodeAt(0);
+            const row = 7 - (parseInt(square[1], 10) - 1);
+            return { row, col };
+        }
+        const fromIdx = algebraicToIndex(from);
+        const toIdx = algebraicToIndex(to);
+        setBoardState(prev => {
+            const newBoard = prev.map(r => r.slice());
+            newBoard[toIdx.row][toIdx.col] = newBoard[fromIdx.row][fromIdx.col];
+            newBoard[fromIdx.row][fromIdx.col] = null;
+            return newBoard;
+        });
+    }
+
+    useEffect(() => {
+        let isMounted = true;
+        let intervalId = null;
+        async function fetchBoard() {
+            try {
+                const res = await fetch(`http://localhost:8080/api/games/${id}/board`, {
+                    headers: {
+                        'Authorization': userToken ? `Bearer ${userToken}` : undefined,
+                    },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (isMounted) {
+                    if (lastMoveNumber !== data.number) {
+                        setLastMoveNumber(data.number);
+                        setLastMoveNotation(data.notation);
+                        applyNotationToBoard(data.notation);
+                    }
+                }
+            } catch (e) {
+                console.log('Error fetching board:', e);
+            }
+        }
+        fetchBoard();
+        intervalId = setInterval(fetchBoard, 1000);
+        return () => {
+            isMounted = false;
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [id, userToken, lastMoveNumber]);
 
     async function postMove(piece, from, to) {
         try {
@@ -22,6 +78,7 @@ const GameSessionPage = () => {
                 from,
                 to,
             });
+            setLastMoveNumber(lastMoveNumber + 1);
             return true;
         } catch (error) {
             alert('Invalid move: ' + error.error);

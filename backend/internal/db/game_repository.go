@@ -7,6 +7,27 @@ import (
 	"github.com/google/uuid"
 )
 
+// GetLastMove returns the last move number and notation for a game, or 0 and "" if none.
+func GetLastMove(db *sql.DB, gameID string) (int, string, error) {
+	row := db.QueryRow(`SELECT move_number, notation FROM moves WHERE game_id = $1 ORDER BY move_number DESC LIMIT 1`, gameID)
+	var n sql.NullInt64
+	var s sql.NullString
+	err := row.Scan(&n, &s)
+	if err != nil {
+		// If no moves, return 0 and ""
+		return 0, "", nil
+	}
+	moveNumber := 0
+	notation := ""
+	if n.Valid {
+		moveNumber = int(n.Int64)
+	}
+	if s.Valid {
+		notation = s.String
+	}
+	return moveNumber, notation, nil
+}
+
 // JoinGameAsBlack sets the player_black_id for a game if not already set.
 func JoinGameAsBlack(db *sql.DB, gameID string, userID int64) error {
 	// Only allow joining if player_black_id is NULL

@@ -22,6 +22,11 @@ func main() {
 	mux.HandleFunc("/api/logout", api.LogoutHandler)
 	mux.HandleFunc("/api/me", api.MeHandler)
 	gamesHandler := func(w http.ResponseWriter, r *http.Request) {
+		// Handle /api/games/{id}/board for board state polling
+		if r.Method == http.MethodGet && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-6:] == "/board" {
+			api.BoardStateHandler(w, r)
+			return
+		}
 		// Handle /api/games/{id}/join for joining a game
 		if r.Method == http.MethodPost && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-5:] == "/join" {
 			api.JoinGameHandler(w, r)
