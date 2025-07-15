@@ -1,0 +1,29 @@
+.move-log {
+  background: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+.move-log h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+.move-log-list {
+  font-family: monospace;
+  font-size: 1rem;
+}
+.move-log-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid #eee;
+}
+.move-log-entry:last-child {
+  border-bottom: none;
+}
+.move-log-empty {
+  color: #888;
+  font-style: italic;
+}

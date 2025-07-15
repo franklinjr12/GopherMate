@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Board, { InitializeBoard } from '../chess/board';
+import MoveLog from './MoveLog';
 import { postMove as postMoveApi } from '../services/gameService';
 import './GameSessionPage.css';
 
@@ -15,6 +16,7 @@ const GameSessionPage = () => {
     const [lastMoveNumber, setLastMoveNumber] = useState(0); // Track last move number
     const [lastMoveNotation, setLastMoveNotation] = useState(''); // Track last move notation
     const [turn, setTurn] = useState('white'); // Track whose turn it is
+    const [moveLog, setMoveLog] = useState([]); // Store move log for chat window
 
     // Helper to parse notation like "white-pawn e2->e4" and update boardState
     function applyNotationToBoard(notation) {
@@ -55,10 +57,16 @@ const GameSessionPage = () => {
                     // format is { number: 1, notation: "white-pawn e2->e4" }
                     if (lastMoveNumber !== data.number) {
                         const turn = data.notation.split(' ')[0].split('-')[0]; // e.g., "white" from "white-pawn e2->e4"
-                        setTurn(turn);
+                        setTurn(turn === 'white' ? 'black' : 'white');
                         setLastMoveNumber(data.number);
                         setLastMoveNotation(data.notation);
                         applyNotationToBoard(data.notation);
+                        setMoveLog(prev => {
+                            const newLog = [...prev, data.notation];
+                            // Limit the log size for protection
+                            const MESSAGE_LIMIT = 50;
+                            return newLog.slice(-MESSAGE_LIMIT);
+                        });
                     }
                 }
             } catch (e) {
@@ -109,6 +117,18 @@ const GameSessionPage = () => {
                         newBoard[to.row][to.col] = newBoard[from.row][from.col];
                         newBoard[from.row][from.col] = null;
                         setBoardState(newBoard);
+                        // Construct move notation and update moveLog immediately
+                        const piece = boardState[from.row][from.col];
+                        const fromSquare = String.fromCharCode('a'.charCodeAt(0) + from.col) + (8 - from.row);
+                        const toSquare = String.fromCharCode('a'.charCodeAt(0) + to.col) + (8 - to.row);
+                        const notation = `${piece} ${fromSquare}->${toSquare}`;
+                        setMoveLog(prev => {
+                            const newLog = [...prev, notation];
+                            const MESSAGE_LIMIT = 50;
+                            return newLog.slice(-MESSAGE_LIMIT);
+                        });
+                        // Toggle turn after local move
+                        setTurn(prevTurn => (prevTurn === 'white' ? 'black' : 'white'));
                     }
                 }
                 setSelected(null);
@@ -130,6 +150,18 @@ const GameSessionPage = () => {
                     newBoard[row][col] = newBoard[from.row][from.col];
                     newBoard[from.row][from.col] = null;
                     setBoardState(newBoard);
+                    // Construct move notation and update moveLog immediately
+                    const piece = boardState[from.row][from.col];
+                    const fromSquare = String.fromCharCode('a'.charCodeAt(0) + from.col) + (8 - from.row);
+                    const toSquare = String.fromCharCode('a'.charCodeAt(0) + col) + (8 - row);
+                    const notation = `${piece} ${fromSquare}->${toSquare}`;
+                    setMoveLog(prev => {
+                        const newLog = [...prev, notation];
+                        const MESSAGE_LIMIT = 50;
+                        return newLog.slice(-MESSAGE_LIMIT);
+                    });
+                    // Toggle turn after local move
+                    setTurn(prevTurn => (prevTurn === 'white' ? 'black' : 'white'));
                 }
             }
             dragStart.current = null;
@@ -152,12 +184,11 @@ const GameSessionPage = () => {
                         <button onClick={() => alert('Offer Draw')}>Offer Draw</button>
                     </div>
                     <div className="chat-box">
-                        <h2>Chat</h2>
-                        <div className="messages">
-                            {/* Chat messages will be displayed here */}
-                        </div>
-                        <input type="text" placeholder="Type a message..." />
-                        <button onClick={() => alert('Send message')}>Send</button>
+                        <h2>Move Log</h2>
+                        <MoveLog moveLog={moveLog} />
+                        {/* Optionally, keep chat input for future chat feature */}
+                        <input type="text" placeholder="Type a message..." disabled />
+                        <button disabled>Send</button>
                     </div>
                 </div>
             </div>
