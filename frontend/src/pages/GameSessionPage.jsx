@@ -14,6 +14,7 @@ const GameSessionPage = () => {
     const userToken = localStorage.getItem('token'); // Assuming user token is stored in localStorage
     const [lastMoveNumber, setLastMoveNumber] = useState(0); // Track last move number
     const [lastMoveNotation, setLastMoveNotation] = useState(''); // Track last move notation
+    const [turn, setTurn] = useState('white'); // Track whose turn it is
 
     // Helper to parse notation like "white-pawn e2->e4" and update boardState
     function applyNotationToBoard(notation) {
@@ -51,7 +52,10 @@ const GameSessionPage = () => {
                 if (!res.ok) return;
                 const data = await res.json();
                 if (isMounted) {
+                    // format is { number: 1, notation: "white-pawn e2->e4" }
                     if (lastMoveNumber !== data.number) {
+                        const turn = data.notation.split(' ')[0].split('-')[0]; // e.g., "white" from "white-pawn e2->e4"
+                        setTurn(turn);
                         setLastMoveNumber(data.number);
                         setLastMoveNotation(data.notation);
                         applyNotationToBoard(data.notation);
@@ -135,6 +139,9 @@ const GameSessionPage = () => {
     return (
         <div className="game-session-page">
             <h1 className="title">Game Session</h1>
+            <div style={{ marginBottom: '10px', fontWeight: 'bold', fontSize: '1.2em' }}>
+                {turn === 'white' || turn === 'black' ? `Current turn: ${turn.charAt(0).toUpperCase() + turn.slice(1)}` : 'Current turn: Unknown'}
+            </div>
             <div className="content">
                 <div className="game-board">
                     <Board boardState={boardState} onMove={onMove} />
