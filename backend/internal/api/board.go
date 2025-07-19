@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"gophermatebackend/internal/cache"
 	"gophermatebackend/internal/db"
 	"gophermatebackend/internal/utils"
 	"net/http"
@@ -59,6 +60,10 @@ func BoardStateHandler(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]interface{}{
 		"number":   moveNumber,
 		"notation": notation, // format is: white-pawn e2->e4
+	}
+	board := cache.GetBoard(gameID)
+	if board != nil && board.DrawOfferPending {
+		resp["draw_offer"] = board.DrawOffer
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)

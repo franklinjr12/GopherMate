@@ -7,6 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// SetGameDraw sets the game as finished with a draw in the database
+func SetGameDraw(dbConn *sql.DB, gameID string) error {
+	_, err := dbConn.Exec(`UPDATE games SET winner = $1, finished_at = NOW() WHERE id = $2`, "draw", gameID)
+	return err
+}
+
 // GetLastMove returns the last move number and notation for a game, or 0 and "" if none.
 func GetLastMove(db *sql.DB, gameID string) (int, string, error) {
 	row := db.QueryRow(`SELECT move_number, notation FROM moves WHERE game_id = $1 ORDER BY move_number DESC LIMIT 1`, gameID)

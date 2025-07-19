@@ -6,6 +6,20 @@ import MoveLog from './MoveLog';
 import { postMove as postMoveApi } from '../services/gameService';
 import './GameSessionPage.css';
 
+// Simple modal for draw offer
+function DrawOfferModal({ offerer, onAccept, onDecline }) {
+    return (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'white', padding: 30, borderRadius: 8, boxShadow: '0 2px 8px #333', textAlign: 'center' }}>
+                <h2>Draw Offer</h2>
+                <p>{offerer.charAt(0).toUpperCase() + offerer.slice(1)} has offered a draw. Do you accept?</p>
+                <button style={{ marginRight: 10 }} onClick={onAccept}>Accept</button>
+                <button onClick={onDecline}>Decline</button>
+            </div>
+        </div>
+    );
+}
+
 
 const GameSessionPage = () => {
     const { id } = useParams();
@@ -17,6 +31,8 @@ const GameSessionPage = () => {
     const [lastMoveNotation, setLastMoveNotation] = useState(''); // Track last move notation
     const [turn, setTurn] = useState('white'); // Track whose turn it is
     const [moveLog, setMoveLog] = useState([]); // Store move log for chat window
+    const [drawOffer, setDrawOffer] = useState(null); // { offerer: "white" | "black" }
+    const [showDrawModal, setShowDrawModal] = useState(false);
 
     // Helper to parse notation like "white-pawn e2->e4" and update boardState
     function applyNotationToBoard(notation) {
@@ -54,7 +70,7 @@ const GameSessionPage = () => {
                 if (!res.ok) return;
                 const data = await res.json();
                 if (isMounted) {
-                    // format is { number: 1, notation: "white-pawn e2->e4" }
+                    // format is { number: 1, notation: "white-pawn e2->e4", draw_offer: "white" }
                     if (lastMoveNumber !== data.number) {
                         const turn = data.notation.split(' ')[0].split('-')[0]; // e.g., "white" from "white-pawn e2->e4"
                         setTurn(turn === 'white' ? 'black' : 'white');
@@ -67,6 +83,14 @@ const GameSessionPage = () => {
                             const MESSAGE_LIMIT = 50;
                             return newLog.slice(-MESSAGE_LIMIT);
                         });
+                    }
+                    // Handle draw offer
+                    if (data.draw_offer && data.draw_offer !== turn) {
+                        setDrawOffer({ offerer: data.draw_offer });
+                        setShowDrawModal(true);
+                    } else {
+                        setDrawOffer(null);
+                        setShowDrawModal(false);
                     }
                 }
             } catch (e) {
@@ -119,6 +143,71 @@ const GameSessionPage = () => {
             alert('Resign failed: ' + e.message);
         }
     }
+
+    async function offerDraw() {
+        try {
+            const res = await fetch(`http://localhost:8080/api/games/${id}/offer-draw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ player_token: userToken }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Draw offer sent.');
+            } else {
+                alert('Draw offer failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Draw offer failed: ' + e.message);
+        }
+    }
+
+    async function acceptDraw() {
+        try {
+            const res = await fetch(`http://localhost:8080/api/games/${id}/accept-draw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ player_token: userToken }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Draw accepted! Game ends in a draw.');
+                // Optionally, update UI to show game ended
+                setShowDrawModal(false);
+                // You may want to disable board or redirect
+            } else {
+                alert('Failed to accept draw: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Failed to accept draw: ' + e.message);
+        }
+    }
+
+    async function declineDraw() {
+        try {
+            const res = await fetch(`http://localhost:8080/api/games/${id}/decline-draw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ player_token: userToken }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert('Draw declined.');
+                setShowDrawModal(false);
+            } else {
+                alert('Failed to decline draw: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Failed to decline draw: ' + e.message);
+        }
+    }
+    
 
     async function onMove(action, row, col) {
         if (action === 'click') {
@@ -203,7 +292,7 @@ const GameSessionPage = () => {
                 <div className="side-actions">
                     <div className="game-controls">
                         <button onClick={resignGame}>Resign</button>
-                        <button onClick={() => alert('Offer Draw')}>Offer Draw</button>
+                        <button onClick={offerDraw}>Offer Draw</button>
                     </div>
                     <div className="chat-box">
                         <h2>Move Log</h2>
@@ -214,6 +303,9 @@ const GameSessionPage = () => {
                     </div>
                 </div>
             </div>
+            {showDrawModal && drawOffer && (
+                <DrawOfferModal offerer={drawOffer.offerer} onAccept={acceptDraw} onDecline={declineDraw} />
+            )}
         </div>
     );
 };

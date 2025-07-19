@@ -32,6 +32,21 @@ func main() {
 			api.JoinGameHandler(w, r)
 			return
 		}
+		// Handle /api/games/{id}/offer-draw
+		if r.Method == http.MethodPost && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-11:] == "/offer-draw" {
+			api.OfferDrawHandler(w, r)
+			return
+		}
+		// Handle /api/games/{id}/accept-draw
+		if r.Method == http.MethodPost && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-12:] == "/accept-draw" {
+			api.AcceptDrawHandler(w, r)
+			return
+		}
+		// Handle /api/games/{id}/decline-draw
+		if r.Method == http.MethodPost && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-13:] == "/decline-draw" {
+			api.DeclineDrawHandler(w, r)
+			return
+		}
 		// Handle /api/games/move
 		if r.Method == http.MethodPost && r.URL.Path == "/api/games/move" {
 			api.MoveHandler(w, r)

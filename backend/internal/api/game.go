@@ -13,6 +13,178 @@ import (
 	"gophermatebackend/internal/utils"
 )
 
+// AcceptDrawHandler handles POST /api/games/:id/accept-draw
+func AcceptDrawHandler(w http.ResponseWriter, r *http.Request) {
+	dbConn, err := db.InitDB()
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "DB error"})
+		return
+	}
+	defer dbConn.Close()
+
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid game ID"})
+		return
+	}
+	gameID := parts[3]
+
+	var req struct {
+		PlayerToken string `json:"player_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	userID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session token"})
+		return
+	}
+
+	ok, err := db.ValidateUserInGameSession(dbConn, gameID, userID)
+	if err != nil || !ok {
+		utils.WriteJSON(w, http.StatusForbidden, map[string]string{"error": "User not in game"})
+		return
+	}
+
+	board := cache.GetBoard(gameID)
+	if board == nil {
+		utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
+		return
+	}
+
+	// Accept draw: clear draw offer
+	board.DrawOffer = ""
+	board.DrawOfferPending = false
+
+	// Update DB: set finished_at and winner
+	if err := db.SetGameDraw(dbConn, gameID); err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to update game"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Draw accepted, game ended"})
+}
+
+// DeclineDrawHandler handles POST /api/games/:id/decline-draw
+func DeclineDrawHandler(w http.ResponseWriter, r *http.Request) {
+	dbConn, err := db.InitDB()
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "DB error"})
+		return
+	}
+	defer dbConn.Close()
+
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid game ID"})
+		return
+	}
+	gameID := parts[3]
+
+	var req struct {
+		PlayerToken string `json:"player_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	userID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid session token"})
+		return
+	}
+
+	ok, err := db.ValidateUserInGameSession(dbConn, gameID, userID)
+	if err != nil || !ok {
+		utils.WriteJSON(w, http.StatusForbidden, map[string]string{"error": "User not in game"})
+		return
+	}
+
+	board := cache.GetBoard(gameID)
+	if board == nil {
+		utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
+		return
+	}
+
+	// Decline draw: clear draw offer
+	board.DrawOffer = ""
+	board.DrawOfferPending = false
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Draw offer declined"})
+}
+
+// OfferDrawHandler handles POST /api/games/:id/offer-draw
+func OfferDrawHandler(w http.ResponseWriter, r *http.Request) {
+	dbConn, err := db.InitDB()
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	defer dbConn.Close()
+
+	// Parse game ID from URL: /api/games/{id}/offer-draw
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid offer draw URL"})
+		return
+	}
+	gameID := parts[3]
+
+	// Parse session token from request body
+	var req struct {
+		PlayerToken string `json:"player_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	// Get user ID from session token
+	userID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
+		return
+	}
+
+	// Validate user is in game
+	ok, err := db.ValidateUserInGameSession(dbConn, gameID, userID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not part of the game session"})
+		return
+	}
+
+	// Determine which color the user is in this game
+	color, err := db.GetUserColorInGame(dbConn, gameID, userID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to determine player color"})
+		return
+	}
+	if color == "" {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not a player in this game"})
+		return
+	}
+
+	board := cache.GetBoard(gameID)
+	if board == nil {
+		utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
+		return
+	}
+
+	// Set draw offer
+	board.DrawOffer = color
+	board.DrawOfferPending = true
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Draw offer sent"})
+}
+
 func GamesHandler(w http.ResponseWriter, r *http.Request) {
 	dbConn, err := db.InitDB()
 	if err != nil {

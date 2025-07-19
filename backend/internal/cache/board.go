@@ -6,8 +6,10 @@ import (
 
 // Board represents the state of a chess game in memory.
 type Board struct {
-	Squares  [8][8]string // Each square holds a piece string (e.g., "white-pawn", "black-king", or "")
-	LastMove string       // "white" or "black" (whose turn just played)
+	Squares          [8][8]string // Each square holds a piece string (e.g., "white-pawn", "black-king", or "")
+	LastMove         string       // "white" or "black" (whose turn just played)
+	DrawOffer        string       // "white", "black", or "" (who offered draw, empty if none)
+	DrawOfferPending bool         // true if a draw offer is pending, false otherwise
 }
 
 // boardCache is the in-memory map of session string to Board pointer.
