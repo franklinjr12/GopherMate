@@ -206,6 +206,76 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateGameHandler handles POST /api/games
+// ResignHandler handles POST /api/games/:id/resign
+func ResignHandler(w http.ResponseWriter, r *http.Request) {
+	dbConn, err := db.InitDB()
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	defer dbConn.Close()
+
+	// Parse game ID from URL: /api/games/{id}/resign
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 4 {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid resign URL"})
+		return
+	}
+	gameID := parts[3]
+
+	// Parse session token from request body
+	var req struct {
+		PlayerToken string `json:"player_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	// Get user ID from session token
+	userID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
+		return
+	}
+
+	// Validate user is in game
+	ok, err := db.ValidateUserInGameSession(dbConn, gameID, userID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return
+	}
+	if !ok {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not part of the game session"})
+		return
+	}
+
+	// Determine which color the user is in this game
+	color, err := db.GetUserColorInGame(dbConn, gameID, userID)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to determine player color"})
+		return
+	}
+	if color == "" {
+		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not a player in this game"})
+		return
+	}
+
+	// Set winner to the opposite color and finished_at to now
+	var winner string
+	if color == "white" {
+		winner = "black"
+	} else {
+		winner = "white"
+	}
+	err = db.SetGameResigned(dbConn, gameID, winner)
+	if err != nil {
+		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to resign game"})
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Resigned successfully", "winner": winner})
+}
 func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	dbConn, err := db.InitDB()
 	if err != nil {

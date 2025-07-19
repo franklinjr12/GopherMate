@@ -104,3 +104,14 @@ func ValidateUserInGameSession(db *sql.DB, gameID string, userID int64) (bool, e
 	}
 	return count > 0, nil
 }
+
+// SetGameResigned sets the winner and finished_at for a game when a player resigns
+func SetGameResigned(db *sql.DB, gameID string, winner string) error {
+	query := `UPDATE games SET winner = $1, finished_at = NOW() WHERE id = $2`
+	_, err := db.Exec(query, winner, gameID)
+	if err != nil {
+		log.Printf("SetGameResigned: Failed to update game: %v", err)
+		return err
+	}
+	return nil
+}

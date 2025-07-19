@@ -37,6 +37,11 @@ func main() {
 			api.MoveHandler(w, r)
 			return
 		}
+		// Handle /api/games/{id}/resign
+		if r.Method == http.MethodPost && len(r.URL.Path) > len("/api/games/") && r.URL.Path[len(r.URL.Path)-7:] == "/resign" {
+			api.ResignHandler(w, r)
+			return
+		}
 		// Fallback to existing handler
 		if r.Method == http.MethodPost {
 			api.CreateGameHandler(w, r)

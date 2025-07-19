@@ -81,6 +81,7 @@ const GameSessionPage = () => {
         };
     }, [id, userToken, lastMoveNumber]);
 
+
     async function postMove(piece, from, to) {
         try {
             const data = await postMoveApi({
@@ -95,6 +96,27 @@ const GameSessionPage = () => {
         } catch (error) {
             alert('Invalid move: ' + error.error);
             return false;
+        }
+    }
+
+    async function resignGame() {
+        try {
+            const res = await fetch(`http://localhost:8080/api/games/${id}/resign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ player_token: userToken }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`You resigned. Winner: ${data.winner}`);
+                // Optionally, redirect or update UI
+            } else {
+                alert('Resign failed: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Resign failed: ' + e.message);
         }
     }
 
@@ -180,7 +202,7 @@ const GameSessionPage = () => {
                 </div>
                 <div className="side-actions">
                     <div className="game-controls">
-                        <button onClick={() => alert('Resign')}>Resign</button>
+                        <button onClick={resignGame}>Resign</button>
                         <button onClick={() => alert('Offer Draw')}>Offer Draw</button>
                     </div>
                     <div className="chat-box">
