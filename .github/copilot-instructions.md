@@ -54,10 +54,57 @@ All communication is via REST APIs. Chess logic (move validation, checkmate dete
   - OS: Windows
 
 ### Best Practices
-- Keep code modular and simple; separate UI, API, DB, and utility logic.
-- Use comments for non-obvious logic, especially chess rules and move validation.
-- Avoid unnecessary dependencies.
-- Reference `docs/project_summary.md` for canonical structure and conventions.
 
----
 These instructions are for GitHub Copilot Agent Mode. Use them to ensure code completions and suggestions are consistent with the GopherMate project standards.
+### Extended Reference: Routes, Models, and Schema
+
+#### REST API Endpoints (Full List)
+See `docs/project_summary.md` for full list. Examples:
+  - `POST /api/register` — Register user
+  - `POST /api/login` — Login, returns session token
+  - `POST /api/logout` — Logout, invalidate session token
+  - `GET /api/me` — Get current logged-in user info
+  - `GET /api/games` — List open games
+  - `POST /api/games` — Create game
+  - `POST /api/games/:id/join` — Join game
+  - `GET /api/games/:id` — Get full game state
+  - `POST /api/games/:id/move` — Submit move
+  - `GET /api/games/:id/moves` — Get move history
+  - `POST /api/games/:id/resign` — Resign from game
+
+#### Database Models & Schema
+  - `users`: id (SERIAL, PK), username (unique), email, password_hash, created_at
+  - `games`: id (UUID, PK), player_white_id, player_black_id, winner, created_at, finished_at
+  - `moves`: id (SERIAL, PK), game_id (UUID, FK), player_id, move_number, notation, created_at
+  - `sessions`: token (UUID, PK), user_id, created_at, expires_at
+  - See `backend/db/schema.sql` and `docs/project_summary.md` for full SQL definitions.
+
+#### Backend Models
+  - `internal/model/user.go`: User struct
+  - `internal/model/game.go`: Game struct
+  - `internal/model/move.go`: Move struct
+
+#### Frontend Models
+  - Chess piece logic in `src/chess/pieces/` (pawn.js, knight.js, etc.)
+  - Board and move validation in `src/chess/board.js` and `src/chess/moveValidator.js`
+
+#### Frontend Pages & Features
+  - Auth: `src/pages/LoginPage.jsx`, `src/pages/RegisterPage.jsx`
+  - Lobby: `src/pages/GamesPage.jsx`, game creation/joining in `src/features/lobby/`
+  - Game session: `src/pages/GameSessionPage.jsx`, board UI in `src/chess/board.jsx`, move log in `src/pages/MoveLog.jsx`
+
+#### Backend Endpoints
+  - Auth: `internal/api/auth.go`
+  - Game: `internal/api/game.go`, board state in `internal/api/board.go`
+  - Middleware: `internal/api/middleware.go` (session validation)
+
+#### Backend DB Access
+  - User: `internal/db/user_repository.go`
+  - Game/move: `internal/db/game_repository.go`, `internal/db/move.go`
+  - Session: `internal/db/session_repository.go`
+
+#### Backend Utilities
+  - Config: `internal/utils/config.go`
+  - Password hashing: `internal/utils/hash.go`
+  - Token generation: `internal/utils/token.go`
+  - JSON response helpers: `internal/utils/response.go`
