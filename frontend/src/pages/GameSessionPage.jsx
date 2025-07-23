@@ -33,6 +33,9 @@ const GameSessionPage = () => {
     const [moveLog, setMoveLog] = useState([]); // Store move log for chat window
     const [drawOffer, setDrawOffer] = useState(null); // { offerer: "white" | "black" }
     const [showDrawModal, setShowDrawModal] = useState(false);
+    const [waitingForOpponent, setWaitingForOpponent] = useState(true); // Block moves until both players joined
+    const [playerWhite, setPlayerWhite] = useState(null);
+    const [playerBlack, setPlayerBlack] = useState(null);
 
     // Helper to parse notation like "white-pawn e2->e4" and update boardState
     function applyNotationToBoard(notation) {
@@ -104,6 +107,37 @@ const GameSessionPage = () => {
             if (intervalId) clearInterval(intervalId);
         };
     }, [id, userToken, lastMoveNumber]);
+
+    // Poll for player info (every 2s)
+    useEffect(() => {
+        let isMounted = true;
+        let intervalId = null;
+        async function fetchPlayers() {
+            try {
+                const res = await fetch('http://localhost:8080/api/games');
+                if (!res.ok) return;
+                const data = await res.json();
+                const game = data.find(g => g.id === id);
+                if (game) {
+                    setPlayerWhite(game.player_white);
+                    setPlayerBlack(game.player_black);
+                    if (game.player_white && game.player_black) {
+                        setWaitingForOpponent(false);
+                    } else {
+                        setWaitingForOpponent(true);
+                    }
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        fetchPlayers();
+        intervalId = setInterval(fetchPlayers, 2000);
+        return () => {
+            isMounted = false;
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [id]);
 
 
     async function postMove(piece, from, to) {
@@ -210,6 +244,9 @@ const GameSessionPage = () => {
     
 
     async function onMove(action, row, col) {
+        if (waitingForOpponent) {
+            return; // Block moves until both players joined
+        }
         if (action === 'click') {
             if (!selected) {
                 // First click: select piece if present
@@ -285,6 +322,11 @@ const GameSessionPage = () => {
             <div style={{ marginBottom: '10px', fontWeight: 'bold', fontSize: '1.2em' }}>
                 {turn === 'white' || turn === 'black' ? `Current turn: ${turn.charAt(0).toUpperCase() + turn.slice(1)}` : 'Current turn: Unknown'}
             </div>
+            {waitingForOpponent && (
+                <div style={{ color: 'red', fontWeight: 'bold', marginBottom: 10 }}>
+                    Waiting for another player to join...
+                </div>
+            )}
             <div className="content">
                 <div className="game-board">
                     <Board boardState={boardState} onMove={onMove} />
