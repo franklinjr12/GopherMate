@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const GamesPage = () => {
   const [games, setGames] = useState([]);
+  const [joinId, setJoinId] = useState('');
 
   useEffect(() => {
     fetch('http://localhost:8080/api/games')
@@ -61,6 +62,18 @@ const GamesPage = () => {
       <div className="header">
         <button onClick={createGame}>Create Game</button>
         <button onClick={() => window.location.href = '/logout'}>Logout</button>
+      </div>
+      <div className="join-by-id" style={{ margin: '16px 0' }}>
+        <input
+          type="text"
+          placeholder="Enter Game ID to join"
+          value={joinId}
+          onChange={e => setJoinId(e.target.value)}
+          style={{ marginRight: '8px' }}
+        />
+        <button onClick={() => joinGame(joinId)} disabled={!joinId.trim()}>
+          Join by ID
+        </button>
       </div>
       <div className="games-list">
         <h1>Available Games</h1>
