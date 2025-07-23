@@ -77,16 +77,32 @@ const GamesPage = () => {
       </div>
       <div className="games-list">
         <h1>Available Games</h1>
-        <ul>
-          {games.map((game) => (
-            <li key={game.id}>
-              Game ID: {game.id} - Status: {game.status} - Player White: {game.player_white} - Player Black: {game.player_black}
-              {game.status === 'Open' && (
-                <button onClick={() => joinGame(game.id)}>Join</button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '16px' }}>
+          <thead>
+            <tr>
+              <th style={{ border: '1px solid #ccc', padding: '8px' }}>Game ID</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px' }}>Status</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px' }}>Player White</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px' }}>Player Black</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px' }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {games.map((game) => (
+              <tr key={game.id}>
+                <td style={{ border: '1px solid #ccc', padding: '8px', wordBreak: 'break-all' }}>{game.id}</td>
+                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{game.status}</td>
+                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{game.player_white}</td>
+                <td style={{ border: '1px solid #ccc', padding: '8px' }}>{game.player_black || '-'}</td>
+                <td style={{ border: '1px solid #ccc', padding: '8px' }}>
+                  {game.status === 'Open' && (
+                    <button onClick={() => joinGame(game.id)}>Join</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
