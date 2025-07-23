@@ -4,8 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"gophermatebackend/internal/api"
+	"gophermatebackend/internal/cache"
 )
 
 func main() {
@@ -14,6 +16,14 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	// Start periodic board cache cleanup
+	go func() {
+		for {
+			cache.CleanExpiredBoards()
+			time.Sleep(30 * 60 * time.Second)
+		}
+	}()
 
 	// Set up routes
 	mux := http.NewServeMux()

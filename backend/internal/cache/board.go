@@ -2,6 +2,7 @@ package cache
 
 import (
 	"sync"
+	"time"
 )
 
 // Board represents the state of a chess game in memory.
@@ -12,24 +13,51 @@ type Board struct {
 	DrawOfferPending bool         // true if a draw offer is pending, false otherwise
 }
 
-// boardCache is the in-memory map of session string to Board pointer.
+// boardCache is the in-memory map of session string to Board pointer and its last updated time.
 var (
-	boardCache   = make(map[string]*Board)
+	boardCache   = make(map[string]*boardCacheEntry)
 	boardCacheMu sync.RWMutex
 )
 
-// GetBoard retrieves the board for a session string. Returns nil if not found.
+type boardCacheEntry struct {
+	Board     *Board
+	UpdatedAt time.Time
+}
+
+// GetBoard retrieves the board for a session string. Returns nil if not found or expired.
 func GetBoard(session string) *Board {
 	boardCacheMu.RLock()
-	defer boardCacheMu.RUnlock()
-	return boardCache[session]
+	entry := boardCache[session]
+	boardCacheMu.RUnlock()
+	if entry == nil {
+		return nil
+	}
+	if time.Since(entry.UpdatedAt) > 30*time.Minute {
+		return nil
+	}
+	return entry.Board
 }
 
 // SetBoard sets or updates the board for a session string.
 func SetBoard(session string, board *Board) {
 	boardCacheMu.Lock()
-	defer boardCacheMu.Unlock()
-	boardCache[session] = board
+	boardCache[session] = &boardCacheEntry{
+		Board:     board,
+		UpdatedAt: time.Now(),
+	}
+	boardCacheMu.Unlock()
+}
+
+// CleanExpiredBoards removes boards that have not been updated in the last 30 minutes.
+func CleanExpiredBoards() {
+	boardCacheMu.Lock()
+	now := time.Now()
+	for session, entry := range boardCache {
+		if now.Sub(entry.UpdatedAt) > 30*time.Minute {
+			delete(boardCache, session)
+		}
+	}
+	boardCacheMu.Unlock()
 }
 
 // NewInitialBoard returns a new Board with the standard chess starting position and last move as "black" (so white moves first).
