@@ -9,6 +9,8 @@ import (
 type Board struct {
 	Squares          [8][8]string // Each square holds a piece string (e.g., "white-pawn", "black-king", or "")
 	LastMove         string       // "white" or "black" (whose turn just played)
+	LastMoveNumber   int          // The move number of the last move made
+	LastMoveNotation string       // The notation of the last move made
 	DrawOffer        string       // "white", "black", or "" (who offered draw, empty if none)
 	DrawOfferPending bool         // true if a draw offer is pending, false otherwise
 }
@@ -60,6 +62,13 @@ func CleanExpiredBoards() {
 	boardCacheMu.Unlock()
 }
 
+// ClearBoard removes a specific board from the cache.
+func ClearBoard(session string) {
+	boardCacheMu.Lock()
+	delete(boardCache, session)
+	boardCacheMu.Unlock()
+}
+
 // NewInitialBoard returns a new Board with the standard chess starting position and last move as "black" (so white moves first).
 func NewInitialBoard() *Board {
 	var b Board
@@ -87,6 +96,8 @@ func NewInitialBoard() *Board {
 	b.Squares[7][3] = "white-queen"
 	b.Squares[7][4] = "white-king"
 
-	b.LastMove = "black" // So white moves first
+	b.LastMove = "black"    // So white moves first
+	b.LastMoveNumber = 0    // No moves made yet
+	b.LastMoveNotation = "" // No moves made yet
 	return &b
 }

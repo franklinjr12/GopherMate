@@ -65,6 +65,9 @@ func AcceptDrawHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Clear board cache for completed game
+	cache.ClearBoard(gameID)
+
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Draw accepted, game ended"})
 }
 
@@ -374,6 +377,11 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		board.LastMove = "black"
 	}
 
+	// Update last move information in cache
+	board.LastMoveNumber = board.LastMoveNumber + 1
+	board.LastMoveNotation = notation
+	cache.SetBoard(moveReq.Session, board)
+
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Move submitted successfully"})
 }
 
@@ -445,6 +453,9 @@ func ResignHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to resign game"})
 		return
 	}
+
+	// Clear board cache for completed game
+	cache.ClearBoard(gameID)
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Resigned successfully", "winner": winner})
 }

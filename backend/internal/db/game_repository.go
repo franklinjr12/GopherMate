@@ -18,6 +18,13 @@ func SetGameDraw(dbConn *sql.DB, gameID string) error {
 
 // GetLastMove returns the last move number and notation for a game, or 0 and "" if none.
 func GetLastMove(db *sql.DB, gameID string) (int, string, error) {
+	// Check cache first
+	board := cache.GetBoard(gameID)
+	if board != nil {
+		return board.LastMoveNumber, board.LastMoveNotation, nil
+	}
+
+	// Cache miss - perform database query
 	row := db.QueryRow(`SELECT move_number, notation FROM moves WHERE game_id = $1 ORDER BY move_number DESC LIMIT 1`, gameID)
 	var n sql.NullInt64
 	var s sql.NullString
