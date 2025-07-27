@@ -448,9 +448,11 @@ func ResignHandler(w http.ResponseWriter, r *http.Request) {
 
 	utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "Resigned successfully", "winner": winner})
 }
+
 func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	dbConn, err := db.InitDB()
 	if err != nil {
+		utils.LogError("CreateGameHandler: Failed to initialize database: " + err.Error())
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
@@ -460,6 +462,7 @@ func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 		PlayerToken string `json:"player_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.LogError("CreateGameHandler: Failed to decode request body: " + err.Error())
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
@@ -467,12 +470,14 @@ func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from session token
 	playerWhiteID, err := db.GetUserIDBySessionToken(dbConn, req.PlayerToken)
 	if err != nil || playerWhiteID <= 0 {
+		utils.LogError("CreateGameHandler: Invalid player token: " + err.Error())
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid player token"})
 		return
 	}
 
 	gameID, err := db.CreateGame(dbConn, playerWhiteID)
 	if err != nil {
+		utils.LogError("CreateGameHandler: Failed to create game: " + err.Error())
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create game"})
 		return
 	}

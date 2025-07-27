@@ -41,7 +41,7 @@ func GetUserIDBySessionToken(db *sql.DB, sessionToken string) (int64, error) {
 	// Not in cache or expired, query DB
 	var userID int64
 	var expiresAt time.Time
-	query := "SELECT user_id, expires_at FROM sessions WHERE token = $"
+	query := "SELECT user_id, expires_at FROM sessions WHERE token = $1"
 	row := db.QueryRow(query, sessionToken)
 	if err := row.Scan(&userID, &expiresAt); err != nil {
 		// On error, do not cache
