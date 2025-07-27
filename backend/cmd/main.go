@@ -10,6 +10,8 @@ import (
 	"gophermatebackend/internal/cache"
 )
 
+const defaultCleanupInterval = 30 * 60 * time.Second
+
 func main() {
 	// Load environment variables or default values
 	port := os.Getenv("PORT")
@@ -21,7 +23,7 @@ func main() {
 	go func() {
 		for {
 			cache.CleanExpiredBoards()
-			time.Sleep(30 * 60 * time.Second)
+			time.Sleep(defaultCleanupInterval)
 		}
 	}()
 
@@ -29,7 +31,15 @@ func main() {
 	go func() {
 		for {
 			cache.CleanExpiredSessions()
-			time.Sleep(30 * 60 * time.Second)
+			time.Sleep(defaultCleanupInterval)
+		}
+	}()
+
+	// Start periodic game session cache cleanup
+	go func() {
+		for {
+			cache.CleanExpiredGameSessions()
+			time.Sleep(defaultCleanupInterval)
 		}
 	}()
 

@@ -3,6 +3,9 @@ package db
 import (
 	"database/sql"
 	"log"
+	"time"
+
+	"gophermatebackend/internal/cache"
 
 	"github.com/google/uuid"
 )
@@ -102,13 +105,28 @@ func CreateGame(db *sql.DB, playerWhiteID int64) (string, error) {
 
 // ValidateUserInGameSession checks if the user is a participant in the game (white or black)
 func ValidateUserInGameSession(db *sql.DB, gameID string, userID int64) (bool, error) {
+	// Generate cache key for this game-user combination
+	cacheKey := cache.GenerateGameSessionKey(gameID, userID)
+
+	// Check cache first
+	if isValid, found := cache.GetGameSessionValidation(cacheKey); found {
+		return isValid, nil
+	}
+
+	// Cache miss - perform database query
 	var count int
 	query := `SELECT COUNT(1) FROM games WHERE id = $1 AND (player_white_id = $2 OR player_black_id = $2)`
 	err := db.QueryRow(query, gameID, userID).Scan(&count)
 	if err != nil {
 		return false, err
 	}
-	return count > 0, nil
+
+	isValid := count > 0
+
+	// Cache the result with 1 hour expiry
+	cache.SetGameSessionValidation(cacheKey, isValid, time.Now().Add(1*time.Hour))
+
+	return isValid, nil
 }
 
 // SetGameResigned sets the winner and finished_at for a game when a player resigns
