@@ -1,7 +1,11 @@
 # GopherMate chess app
 A project for testing AI generated code with Copilot
 
-![Screenshot of GopherMate](repository/print.PNG)
+## Game view
+![Screenshot of game page](repository/game.PNG)
+
+## Lobby
+![Screenshot of lobby](repository/lobby.PNG)
 
 The goal of this project is already achieved. The AI coding assistant did a great job and implemented most of the features for a working chess app.
 Some extra features not implemented are
