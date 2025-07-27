@@ -25,6 +25,14 @@ func main() {
 		}
 	}()
 
+	// Start periodic session cache cleanup
+	go func() {
+		for {
+			cache.CleanExpiredSessions()
+			time.Sleep(30 * 60 * time.Second)
+		}
+	}()
+
 	// Set up routes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/register", api.RegisterHandler)
