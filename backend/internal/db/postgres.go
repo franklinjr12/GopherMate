@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"log"
 
 	"gophermatebackend/internal/utils"
 
@@ -11,15 +10,16 @@ import (
 
 func InitDB() (*sql.DB, error) {
 	config := utils.LoadConfig()
-	connStr := "user=" + config.DBUser + " password=" + config.DBPassword + " dbname=" + config.DBName + " host=" + config.DBHost + " port=" + config.DBPort + " sslmode=disable"
+	connStr := "user=" + config.DBUser + " password=" + config.DBPassword + " dbname=" + config.DBName + " host=" + config.DBHost + " port=" + config.DBPort + " sslmode=require"
+	utils.LogInfo("Connecting to database: " + config.DBHost + ":" + config.DBPort)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Printf("Error opening database: %v", err)
+		utils.LogError("Error opening database: " + err.Error())
 		return nil, err
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Printf("Error connecting to database: %v", err)
+		utils.LogError("Error connecting to database: " + err.Error())
 		return nil, err
 	}
 
