@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { API_URL } from '../services/authService';
 
 const GamesPage = () => {
   const [games, setGames] = useState([]);
   const [joinId, setJoinId] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/games')
+    fetch(`${API_URL}/api/games`)
       .then((response) => response.json())
       .then((data) => {
         const gamesWithStatus = data.map((game) => ({
@@ -18,7 +19,7 @@ const GamesPage = () => {
   }, []);
 
   const joinGame = (id) => {
-    fetch(`http://localhost:8080/api/games/${id}/join`, {
+    fetch(`${API_URL}/api/games/${id}/join`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,7 +38,7 @@ const GamesPage = () => {
   };
 
   const createGame = () => {
-    fetch('http://localhost:8080/api/games', {
+    fetch(`${API_URL}/api/games`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

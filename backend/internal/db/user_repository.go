@@ -13,7 +13,6 @@ func CreateUser(user *model.User) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
@@ -34,7 +33,6 @@ func GetUserByUsername(username string) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 
 	var user model.User
 	query := "SELECT id, username, password_hash FROM users WHERE username = $1"

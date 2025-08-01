@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -20,7 +21,6 @@ func AcceptDrawHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "DB error"})
 		return
 	}
-	defer dbConn.Close()
 
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 4 {
@@ -78,7 +78,6 @@ func DeclineDrawHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "DB error"})
 		return
 	}
-	defer dbConn.Close()
 
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 4 {
@@ -127,7 +126,6 @@ func OfferDrawHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	// Parse game ID from URL: /api/games/{id}/offer-draw
 	parts := strings.Split(r.URL.Path, "/")
@@ -195,7 +193,6 @@ func GamesHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	games, err := db.GetOpenGames(dbConn)
 	if err != nil {
@@ -222,7 +219,6 @@ func JoinGameHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	// Parse game ID from URL: /api/games/{id}/join
 	parts := strings.Split(r.URL.Path, "/")
@@ -278,27 +274,32 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		} `json:"to"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&moveReq); err != nil {
+		utils.LogError("MoveHandler: failed to decode request body: " + err.Error())
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
 	dbConn, err := db.InitDB()
 	if err != nil {
+		utils.LogError("MoveHandler: failed to initialize database: " + err.Error())
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	// Validate that the incoming User(token) from the data matches a existing user session from the database
+	utils.LogDebug("MoveHandler: db.GetUserIDBySessionToken params: sessionToken=" + moveReq.User)
 	userID, err := db.GetUserIDBySessionToken(dbConn, moveReq.User)
 	if err != nil {
+		utils.LogError("MoveHandler: failed to get user ID by session token: " + err.Error())
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid user token"})
 		return
 	}
 
 	// Validate that the userID is from the game session provided by incoming Session
+	utils.LogDebug("MoveHandler: db.ValidateUserInGameSession params: gameID=" + moveReq.Session + ", userID=" + fmt.Sprintf("%d", userID))
 	ok, err := db.ValidateUserInGameSession(dbConn, moveReq.Session, userID)
 	if err != nil {
+		utils.LogError("MoveHandler: failed to validate user in game session: " + err.Error())
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
@@ -308,18 +309,22 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Determine which color the user is in this game
+	utils.LogDebug("MoveHandler: db.GetUserColorInGame params: gameID=" + moveReq.Session + ", userID=" + fmt.Sprintf("%d", userID))
 	color, err := db.GetUserColorInGame(dbConn, moveReq.Session, userID)
 	if err != nil {
+		utils.LogError("MoveHandler: failed to get user color in game: " + err.Error())
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to determine player color"})
 		return
 	}
 	if color == "" {
+		utils.LogError("MoveHandler: user is not a player in this game")
 		utils.WriteJSON(w, http.StatusUnauthorized, map[string]string{"error": "User is not a player in this game"})
 		return
 	}
 
 	board := cache.GetBoard(moveReq.Session)
 	if board == nil {
+		utils.LogError("MoveHandler: board is nil")
 		utils.WriteJSON(w, http.StatusNotFound, map[string]string{"error": "Game not found"})
 		return
 	}
@@ -346,12 +351,12 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 		To:    movevalidation.Position{Row: moveReq.To.Row, Col: moveReq.To.Col},
 	})
 	if err != nil {
-		log.Printf("MoveHandler: Invalid move: %v", err)
+		utils.LogError("MoveHandler: Invalid move: " + err.Error())
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 	if !valid {
-		log.Printf("MoveHandler: Invalid move: %v", err)
+		utils.LogError("MoveHandler: Invalid move: " + err.Error())
 		utils.WriteJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid move"})
 		return
 	}
@@ -363,7 +368,7 @@ func MoveHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = db.SaveMove(dbConn, moveReq.Session, userID, notation)
 	if err != nil {
-		log.Printf("MoveHandler: Failed to save move: %v", err)
+		utils.LogError("MoveHandler: Failed to save move: " + err.Error())
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to save move"})
 		return
 	}
@@ -393,7 +398,6 @@ func ResignHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	// Parse game ID from URL: /api/games/{id}/resign
 	parts := strings.Split(r.URL.Path, "/")
@@ -467,7 +471,6 @@ func CreateGameHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	var req struct {
 		PlayerToken string `json:"player_token"`

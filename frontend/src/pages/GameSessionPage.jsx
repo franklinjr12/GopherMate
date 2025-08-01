@@ -5,6 +5,8 @@ import Board, { InitializeBoard } from '../chess/board';
 import MoveLog from './MoveLog';
 import { postMove as postMoveApi } from '../services/gameService';
 import './GameSessionPage.css';
+import { API_URL } from '../services/authService';
+
 
 // Simple modal for draw offer
 function DrawOfferModal({ offerer, onAccept, onDecline }) {
@@ -65,7 +67,7 @@ const GameSessionPage = () => {
         let intervalId = null;
         async function fetchBoard() {
             try {
-                const res = await fetch(`http://localhost:8080/api/games/${id}/board`, {
+                const res = await fetch(`${API_URL}/api/games/${id}/board`, {
                     headers: {
                         'Authorization': userToken ? `Bearer ${userToken}` : undefined,
                     },
@@ -110,11 +112,12 @@ const GameSessionPage = () => {
 
     // Poll for player info (every 2s)
     useEffect(() => {
+        if (!waitingForOpponent) return; // Only poll when both players are present
         let isMounted = true;
         let intervalId = null;
         async function fetchPlayers() {
             try {
-                const res = await fetch('http://localhost:8080/api/games');
+                const res = await fetch(`${API_URL}/api/games`);
                 if (!res.ok) return;
                 const data = await res.json();
                 const game = data.find(g => g.id === id);
@@ -137,7 +140,7 @@ const GameSessionPage = () => {
             isMounted = false;
             if (intervalId) clearInterval(intervalId);
         };
-    }, [id]);
+    }, [id, waitingForOpponent]);
 
 
     async function postMove(piece, from, to) {
@@ -159,7 +162,7 @@ const GameSessionPage = () => {
 
     async function resignGame() {
         try {
-            const res = await fetch(`http://localhost:8080/api/games/${id}/resign`, {
+            const res = await fetch(`${API_URL}/api/games/${id}/resign`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -180,7 +183,7 @@ const GameSessionPage = () => {
 
     async function offerDraw() {
         try {
-            const res = await fetch(`http://localhost:8080/api/games/${id}/offer-draw`, {
+            const res = await fetch(`${API_URL}/api/games/${id}/offer-draw`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -200,7 +203,7 @@ const GameSessionPage = () => {
 
     async function acceptDraw() {
         try {
-            const res = await fetch(`http://localhost:8080/api/games/${id}/accept-draw`, {
+            const res = await fetch(`${API_URL}/api/games/${id}/accept-draw`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -223,7 +226,7 @@ const GameSessionPage = () => {
 
     async function declineDraw() {
         try {
-            const res = await fetch(`http://localhost:8080/api/games/${id}/decline-draw`, {
+            const res = await fetch(`${API_URL}/api/games/${id}/decline-draw`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

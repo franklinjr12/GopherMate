@@ -32,7 +32,6 @@ func BoardStateHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
 		return
 	}
-	defer dbConn.Close()
 
 	userID, err := db.GetUserIDBySessionToken(dbConn, token)
 	if err != nil {

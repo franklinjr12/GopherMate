@@ -1,10 +1,10 @@
 import axios from 'axios';
+import { API_URL } from './authService';
 
-const API_BASE_URL = 'http://localhost:8080/api';
 
 export const postMove = async ({ session, user, piece, from, to }) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/games/move`, {
+    const response = await axios.post(`${API_URL}/api/games/move`, {
       session,
       user,
       piece,

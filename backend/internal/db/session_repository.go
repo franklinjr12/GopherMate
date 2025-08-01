@@ -18,7 +18,6 @@ func CreateSession(userID int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer db.Close()
 
 	sessionToken := uuid.New().String()
 	expiresAt := defaultExpirationTime()
